@@ -187,37 +187,67 @@ public class UrlResource extends BaseResource
     /**
      * Save a copy in the local cache - in case remote source is not available in future.
      */
-    private void cacheStream() {
+    private void cacheStream() throws IOException {
+
+        File fi = getTemproralCacheFile();
+        if (fi.exists()) {
+            boolean result = fi.delete();
+            if (!result) {
+                IOException e = new IOException("Failed to delete a tmp file. " +
+                        "Possible cause is opening the file by another process: tmpFile = " + fi.getAbsolutePath());
+                e.printStackTrace(); // will use cache but STDERR just in case
+                throw e;
+            }
+        }
+
+        FileOutputStream fout = null;
+        InputStream in = null;
+
         try {
-            File fi = getTemproralCacheFile();
-            if (fi.exists()) fi.delete();
-            FileOutputStream fout = new FileOutputStream(fi);
-            InputStream in = grabStream();
+            fout = new FileOutputStream(fi);
+            in = grabStream();
             byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
             int n;
             while (-1 != (n = in.read(buffer))) {
                 fout.write(buffer, 0, n);
             }
             fout.flush();
-            fout.close();
-            in.close();
-
-            File cacheFile = getCacheFile();
-            boolean result = fi.renameTo(cacheFile);
-            if (!result) {
-                // BZ1075293 Windows fails to rename when a target file exists
-                if (cacheFile.exists()) {
-                    cacheFile.delete();
-                }
-                boolean result2 = fi.renameTo(cacheFile);
-                if (!result2) {
-                    throw new RuntimeException("Failed to rename a tmp file to a cache file. " +
-                            "Possible cause is missing stream close: cacheFile = " + cacheFile.getAbsolutePath());
+        } catch (IOException e) {
+            e.printStackTrace(); // will use cache but STDERR just in case
+            throw e;
+        } finally {
+            if (fout != null) {
+                try {
+                    fout.close();
+                } catch (IOException e) {
+                    // ignore
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
         }
+
+        File cacheFile = getCacheFile();
+        boolean result = fi.renameTo(cacheFile);
+        if (!result) {
+            // BZ1075293 Windows fails to rename when a target file exists
+            if (cacheFile.exists()) {
+                cacheFile.delete();
+            }
+            boolean result2 = fi.renameTo(cacheFile);
+            if (!result2) {
+                IOException e = new IOException("Failed to rename a tmp file to a cache file. " +
+                        "Possible cause is missing stream close: cacheFile = " + cacheFile.getAbsolutePath());
+                e.printStackTrace(); // will use cache but STDERR just in case
+                throw e;
+            }
+        }
+
     }
 
     private URLConnection openURLConnection(URL url) throws IOException {
