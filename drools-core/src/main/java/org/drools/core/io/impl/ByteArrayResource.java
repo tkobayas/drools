@@ -48,11 +48,12 @@ public class ByteArrayResource extends BaseResource
             throw new IllegalArgumentException( "bytes cannot be null" );
         }
         this.bytes = bytes;
+        this.encoding = "UTF-8";
     }
 
     public ByteArrayResource(byte[] bytes, String encoding) {
         this(bytes);
-        this.encoding = encoding;
+        this.encoding = (encoding == null ? "UTF-8" : encoding);
     }
 
     @Override
