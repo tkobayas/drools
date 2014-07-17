@@ -109,6 +109,7 @@ public class I18nTest extends CommonTestMethodBase {
 
     @Test
     public void testIdeographicSpaceInDSL() throws Exception {
+
         // JBRULES-3723
         String dsl =
                 "// Testing 'IDEOGRAPHIC SPACE' (U+3000)\n" +
@@ -161,7 +162,7 @@ public class I18nTest extends CommonTestMethodBase {
     @Test
     public void testNewClassPathResource() {
         KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();
-        // newClassPathResource without specifying encoding
+        // newClassPathResource without specifying encoding. Expecting UTF-8 is default.
         kbuilder.add( ResourceFactory.newClassPathResource( "test_I18nPerson_utf8_forTestNewClassPathResource.drl", getClass() ),
                       ResourceType.DRL );
         if ( kbuilder.hasErrors() ) {
@@ -185,6 +186,45 @@ public class I18nTest extends CommonTestMethodBase {
         ksession.dispose();
     }
 
+    @Test
+    public void testNewClassPathResourceMS932() {
+        // This is a backward compatibility test for users who depends on platform encoding ("file.encoding" system property)
+
+        System.out.println("file.encoding = " + System.getProperty("file.encoding"));
+        if (!System.getProperty("file.encoding").equals("MS932")) {
+            System.out.println("Skipping I18nTest.testNewClassPathResourceMS932(). This test is meaningful only when running with -Dfile.encoding=MS932");
+            return;
+        }
+
+        System.setProperty("drools.default.encoding.utf8.enabled", "false");
+
+        KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();
+        // newClassPathResource without specifying encoding. Expecting platform encoding is default.
+        // So this test case passes only when -Dfile.encoding=MS932
+        kbuilder.add( ResourceFactory.newClassPathResource( "test_I18nPerson_ms932_forTestNewClassPathResource.drl", getClass() ),
+                      ResourceType.DRL );
+        if ( kbuilder.hasErrors() ) {
+            fail( kbuilder.getErrors().toString() );
+        }
+
+        KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();
+        kbase.addKnowledgePackages( kbuilder.getKnowledgePackages() );
+        StatefulKnowledgeSession ksession = createKnowledgeSession(kbase);
+
+        List list = new ArrayList();
+        ksession.setGlobal( "list", list );
+
+        I18nPerson i18nPerson = new I18nPerson();
+        i18nPerson.set名称("山田花子");
+        ksession.insert(i18nPerson);
+        ksession.fireAllRules();
+
+        assertTrue(list.contains("名称は山田花子です"));
+
+        ksession.dispose();
+
+        System.setProperty("drools.default.encoding.utf8.enabled", "true");
+    }
     @Test
     public void testKieFileSystem() {
         String str = "package org.drools.compiler.i18ntest;\n" +

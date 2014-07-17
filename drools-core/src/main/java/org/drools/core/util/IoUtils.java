@@ -319,4 +319,19 @@ public class IoUtils {
 
         return true;
     }
+
+    public static String getEncoding(String encoding) {
+        if (encoding != null) {
+            return encoding;
+        }
+
+        if (System.getProperty("drools.default.encoding.utf8.enabled", "true").equals("true")) {
+            // UTF-8 is the default encoding since Drools 6.2.0
+            return "UTF-8";
+        } else {
+            // For backward compatibility, users can use platform encoding as default encoding.
+            // (-Ddrools.default.encoding.utf8.enabled=false)
+            return System.getProperty("file.encoding");
+        }
+    }
 }

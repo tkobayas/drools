@@ -117,7 +117,7 @@ public class ClassPathResource extends BaseResource
             throw new IllegalArgumentException( "path cannot be null" );
         }
         this.path = path;
-        this.encoding = encoding;
+        this.encoding = IoUtils.getEncoding(encoding);
         this.clazz = clazz;
         this.classLoader = ProjectClassLoader.getClassLoader(classLoader == null ? null : classLoader,
                                                              clazz,
