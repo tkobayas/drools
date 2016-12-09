@@ -56,6 +56,8 @@ public class ExcelParser
     private Map<String, List<DataListener>> _listeners = new HashMap<String, List<DataListener>>();
     private boolean _useFirstSheet;
 
+    public static final String DROOLS_SPREADSHEET_NUMERIC_DISABLED = "drools.spreadsheet.numeric.disabled";
+
     /**
      * Define a map of sheet name to listener handlers.
      * @param sheetListeners map of String to SheetListener
@@ -186,7 +188,11 @@ public class ExcelParser
                         }
                         break;
                     case Cell.CELL_TYPE_NUMERIC:
-                        num = cell.getNumericCellValue();
+                        if ( "true".equalsIgnoreCase( System.getProperty( DROOLS_SPREADSHEET_NUMERIC_DISABLED, "false" ) ) ) {
+                            // don't get a double value. rely on DataFormatter
+                        } else {
+                            num = cell.getNumericCellValue();
+                        }
                     default:
                         if (num - Math.round(num) != 0) {
                             newCell(listeners,

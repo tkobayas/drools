@@ -756,4 +756,18 @@ public class SpreadsheetCompilerUnitTest {
                                       drl );
     }
 
+    @Test
+    public void testDisableNumeric() {
+        // DROOLS-1378
+        System.setProperty( "drools.spreadsheet.numeric.disabled", "true" );
+
+        final SpreadsheetCompiler converter = new SpreadsheetCompiler();
+        String drl = converter.compile( "/data/Numeric.xls",
+                                        InputType.XLS );
+
+        assertNotNull( drl );
+        assertTrue( "6600 is read as double", !drl.contains( "6600.000000000001" ) );
+
+        System.clearProperty( "drools.spreadsheet.numeric.disabled" );
+    }
 }
