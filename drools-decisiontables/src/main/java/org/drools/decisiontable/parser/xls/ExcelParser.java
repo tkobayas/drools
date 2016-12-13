@@ -27,6 +27,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.drools.decisiontable.parser.DecisionTableParser;
+import org.drools.decisiontable.parser.DefaultRuleSheetListener;
 import org.drools.template.parser.DataListener;
 import org.drools.template.parser.DecisionTableParseException;
 import org.slf4j.Logger;
@@ -55,8 +56,6 @@ public class ExcelParser
     public static final String DEFAULT_RULESHEET_NAME = "Decision Tables";
     private Map<String, List<DataListener>> _listeners = new HashMap<String, List<DataListener>>();
     private boolean _useFirstSheet;
-
-    public static final String DROOLS_SPREADSHEET_NUMERIC_DISABLED = "drools.spreadsheet.numeric.disabled";
 
     /**
      * Define a map of sheet name to listener handlers.
@@ -188,7 +187,7 @@ public class ExcelParser
                         }
                         break;
                     case Cell.CELL_TYPE_NUMERIC:
-                        if ( "true".equalsIgnoreCase( System.getProperty( DROOLS_SPREADSHEET_NUMERIC_DISABLED, "false" ) ) ) {
+                        if ( isNumericDisabled(listeners) ) {
                             // don't get a double value. rely on DataFormatter
                         } else {
                             num = cell.getNumericCellValue();
@@ -294,4 +293,12 @@ public class ExcelParser
         }
     }
 
+    private boolean isNumericDisabled( List<? extends DataListener> listeners ) {
+        for ( DataListener listener : listeners ) {
+            if (listener instanceof DefaultRuleSheetListener) {
+                return ((DefaultRuleSheetListener)listener).isNumericDisabled();
+            }
+        }
+        return false;
+    }
 }
