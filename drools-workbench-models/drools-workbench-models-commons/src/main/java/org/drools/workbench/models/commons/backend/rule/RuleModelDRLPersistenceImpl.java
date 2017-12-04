@@ -53,6 +53,7 @@ import org.drools.compiler.lang.descr.PatternSourceDescr;
 import org.drools.compiler.lang.descr.RuleDescr;
 import org.drools.core.base.evaluators.EvaluatorRegistry;
 import org.drools.core.base.evaluators.Operator;
+import org.drools.core.util.DateUtils;
 import org.drools.core.util.ReflectiveVisitor;
 import org.drools.workbench.models.commons.backend.imports.ImportsParser;
 import org.drools.workbench.models.commons.backend.imports.ImportsWriter;
@@ -399,7 +400,7 @@ public class RuleModelDRLPersistenceImpl
                 if (isDSLEnhanced) {
                     buf.append(">");
                 }
-                buf.append("java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(\"" + System.getProperty("drools.dateformat") + "\");\n");
+                buf.append("java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(\"" + DateUtils.getDateFormatMask() + "\");\n");
             }
 
             //Add boiler-plate for actions operating on WorkItems
