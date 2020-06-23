@@ -340,7 +340,7 @@ public class RuleBaseConfiguration
         } else if ( name.equals( ClassLoaderCacheOption.PROPERTY_NAME ) ) {
             setClassLoaderCacheEnabled( StringUtils.isEmpty( value ) ? true : Boolean.valueOf(value));
         } else if ( name.equals( AlphaNodeOrderingOption.PROPERTY_NAME ) ) {
-            setAlphaNodeOrderingOption( AlphaNodeOrderingOption.determineAlphaNodeOrdering( StringUtils.isEmpty( value ) ? "count" : value));
+            setAlphaNodeOrderingOption( AlphaNodeOrderingOption.determineAlphaNodeOrdering( StringUtils.isEmpty( value ) ? "none" : value));
         }
     }
 
@@ -488,7 +488,7 @@ public class RuleBaseConfiguration
                                                                                           "false" ) ) );
 
         setAlphaNodeOrderingOption(AlphaNodeOrderingOption.determineAlphaNodeOrdering(this.chainedProperties.getProperty(AlphaNodeOrderingOption.PROPERTY_NAME,
-                                                                                                                         "count")));
+                                                                                                                         "none")));
     }
 
     /**
