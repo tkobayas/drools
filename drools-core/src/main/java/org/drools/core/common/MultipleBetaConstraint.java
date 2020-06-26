@@ -56,19 +56,19 @@ public abstract class MultipleBetaConstraint implements BetaConstraints {
         this.disableIndexing = disableIndexing;
     }
 
-    public final void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         constraints = (BetaNodeFieldConstraint[])in.readObject();
         indexed = (boolean[]) in.readObject();
         indexPrecedenceOption = (IndexPrecedenceOption) in.readObject();
     }
 
-    public final void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(constraints);
         out.writeObject(indexed);
         out.writeObject(indexPrecedenceOption);
     }
 
-    public final void init(BuildContext context, short betaNodeType) {
+    public void init(BuildContext context, short betaNodeType) {
         RuleBaseConfiguration config = context.getKnowledgeBase().getConfiguration();
 
         if ( disableIndexing || (!config.isIndexLeftBetaMemory() && !config.isIndexRightBetaMemory()) ) {
@@ -84,15 +84,15 @@ public abstract class MultipleBetaConstraint implements BetaConstraints {
         }
     }
 
-    public final void initIndexes(int depth, short betaNodeType) {
+    public void initIndexes(int depth, short betaNodeType) {
         indexed = isIndexableForNode(indexPrecedenceOption, betaNodeType, depth, constraints);
     }
 
-    public final boolean isIndexed() {
+    public boolean isIndexed() {
         return indexed[0];
     }
 
-    public final int getIndexCount() {
+    public int getIndexCount() {
         int count = 0;
         for (boolean i : indexed) {
             if ( i ) {
@@ -107,11 +107,11 @@ public abstract class MultipleBetaConstraint implements BetaConstraints {
         return IndexUtil.Factory.createBetaMemory(config, nodeType, constraints);
     }
 
-    public final BetaNodeFieldConstraint[] getConstraints() {
+    public BetaNodeFieldConstraint[] getConstraints() {
         return constraints;
     }
 
-    public final ContextEntry[] createContext() {
+    public ContextEntry[] createContext() {
         ContextEntry[] entries = new ContextEntry[constraints.length];
         for (int i = 0; i < constraints.length; i++) {
             entries[i] = constraints[i].createContextEntry();
@@ -119,7 +119,7 @@ public abstract class MultipleBetaConstraint implements BetaConstraints {
         return entries;
     }
 
-    public final boolean isEmpty() {
+    public boolean isEmpty() {
         return false;
     }
 

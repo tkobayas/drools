@@ -15,7 +15,7 @@ public class EvalConditionFactory {
 
     public EvalCondition createEvalCondition(final Declaration[] requiredDeclarations) {
         if (PerfLogUtils.getInstance().isEnabled()) {
-            return new EvalConditionMetric(requiredDeclarations);
+            return new EvalConditionMetric(new EvalCondition(requiredDeclarations));
         } else {
             return new EvalCondition(requiredDeclarations);
         }

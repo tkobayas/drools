@@ -28,7 +28,7 @@ public class BetaNodeConstraintFactory {
                                                       final RuleBaseConfiguration conf,
                                                       final boolean disableIndex) {
         if (PerfLogUtils.getInstance().isEnabled()) {
-            return new SingleBetaConstraintsMetric(constraint, conf, disableIndex);
+            return new SingleBetaConstraintsMetric(new SingleBetaConstraints(constraint, conf, disableIndex));
         } else {
             return new SingleBetaConstraints(constraint, conf, disableIndex);
         }
@@ -38,7 +38,7 @@ public class BetaNodeConstraintFactory {
                                                       final RuleBaseConfiguration conf,
                                                       final boolean disableIndexing) {
         if (PerfLogUtils.getInstance().isEnabled()) {
-            return new DoubleBetaConstraintsMetric(constraints, conf, disableIndexing);
+            return new DoubleBetaConstraintsMetric(new DoubleBetaConstraints(constraints, conf, disableIndexing));
         } else {
             return new DoubleBetaConstraints(constraints, conf, disableIndexing);
         }
@@ -48,7 +48,7 @@ public class BetaNodeConstraintFactory {
                                                       final RuleBaseConfiguration conf,
                                                       final boolean disableIndexing) {
         if (PerfLogUtils.getInstance().isEnabled()) {
-            return new TripleBetaConstraintsMetric(constraints, conf, disableIndexing);
+            return new TripleBetaConstraintsMetric(new TripleBetaConstraints(constraints, conf, disableIndexing));
         } else {
             return new TripleBetaConstraints(constraints, conf, disableIndexing);
         }
@@ -58,7 +58,7 @@ public class BetaNodeConstraintFactory {
                                                               final RuleBaseConfiguration conf,
                                                               final boolean disableIndexing) {
         if (PerfLogUtils.getInstance().isEnabled()) {
-            return new QuadroupleBetaConstraintsMetric(constraints, conf, disableIndexing);
+            return new QuadroupleBetaConstraintsMetric(new QuadroupleBetaConstraints(constraints, conf, disableIndexing));
         } else {
             return new QuadroupleBetaConstraints(constraints, conf, disableIndexing);
         }
@@ -68,7 +68,7 @@ public class BetaNodeConstraintFactory {
                                                         final RuleBaseConfiguration conf,
                                                         final boolean disableIndexing) {
         if (PerfLogUtils.getInstance().isEnabled()) {
-            return new DefaultBetaConstraintsMetric(constraints, conf, disableIndexing);
+            return new DefaultBetaConstraintsMetric(new DefaultBetaConstraints(constraints, conf, disableIndexing));
         } else {
             return new DefaultBetaConstraints(constraints, conf, disableIndexing);
         }
