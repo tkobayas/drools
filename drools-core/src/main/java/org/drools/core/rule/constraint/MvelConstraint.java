@@ -455,7 +455,7 @@ public class MvelConstraint extends MutableTypeConstraint implements IndexableCo
         return null;
     }
 
-    private String getPropertyNameFromSimpleExpression(String simpleExpression) {
+    public static String getPropertyNameFromSimpleExpression(String simpleExpression) {
         StringBuilder propertyNameBuilder = new StringBuilder();
         int cursor = extractFirstIdentifier(simpleExpression, propertyNameBuilder, 0);
 

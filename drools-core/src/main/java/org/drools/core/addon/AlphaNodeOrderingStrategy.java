@@ -22,8 +22,6 @@ import java.util.Map;
 import org.drools.core.definitions.InternalKnowledgePackage;
 import org.drools.core.spi.AlphaNodeFieldConstraint;
 import org.drools.core.spi.ObjectType;
-import org.drools.core.util.ClassUtils;
-import org.kie.api.conf.AlphaNodeOrderingOption;
 
 /**
  * 
@@ -37,20 +35,4 @@ public interface AlphaNodeOrderingStrategy {
 
     void reorderAlphaConstraints(List<AlphaNodeFieldConstraint> alphaConstraints, ObjectType objectType);
 
-    static AlphaNodeOrderingStrategy createAlphaNodeOrderingStrategy(AlphaNodeOrderingOption option) {
-        if (AlphaNodeOrderingOption.COUNT.equals(option)) {
-            return new CountBasedOrderingStrategy();
-        } else if (AlphaNodeOrderingOption.CUSTOM.equals(option)) {
-            String customStrategyClassName = System.getProperty(AlphaNodeOrderingOption.CUSTOM_CLASS_PROPERTY_NAME);
-            if (customStrategyClassName == null || customStrategyClassName.trim().isEmpty()) {
-                throw new RuntimeException("Configure system property " + AlphaNodeOrderingOption.CUSTOM_CLASS_PROPERTY_NAME + " with custom strategy implementation FQCN when you use AlphaNodeOrderingOption.CUSTOM");
-            } else {
-                return (AlphaNodeOrderingStrategy) ClassUtils.instantiateObject(customStrategyClassName);
-            }
-        } else if (AlphaNodeOrderingOption.NONE.equals(option)) {
-            return new NoopOrderingStrategy();
-        } else {
-            throw new IllegalArgumentException("No implementation found for AlphaNodeOrderingOption [" + option + "]");
-        }
-    }
 }

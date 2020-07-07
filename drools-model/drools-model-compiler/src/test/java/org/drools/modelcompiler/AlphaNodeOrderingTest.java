@@ -168,6 +168,7 @@ public class AlphaNodeOrderingTest extends BaseModelTest {
         // address.street == "ABC street" has larger usage count.
         // So reordering results in [address.street == "ABC street", address != null] for R1
         //   -> NullPointerException
+        // Avoid reordering when null-check is detected
 
         String str =
                 "import " + Person.class.getCanonicalName() + "\n" +
@@ -180,6 +181,10 @@ public class AlphaNodeOrderingTest extends BaseModelTest {
                      "  $a : Address(street != null)" +
                      "  $p : Person(address == $a, name != \"Mario\", address.street == \"ABC street\")\n" +
                      "then\n" +
+                     "end\n" +
+                     "rule R3 when\n" +
+                     "  $p : Person(name != \"Mario\")\n" +
+                     "then\n" +
                      "end\n";
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
@@ -187,7 +192,7 @@ public class AlphaNodeOrderingTest extends BaseModelTest {
              //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT) // Fails with COUNT
+             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -198,7 +203,7 @@ public class AlphaNodeOrderingTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(4, alphaNodes.size()); // 5 in case of AlphaNodeOrderingOption.NONE
+        assertEquals(5, alphaNodes.size()); // 5 in case of AlphaNodeOrderingOption.NONE
 
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());

@@ -44,6 +44,7 @@ import org.drools.core.RuleBaseConfiguration;
 import org.drools.core.SessionConfiguration;
 import org.drools.core.SessionConfigurationImpl;
 import org.drools.core.addon.AlphaNodeOrderingStrategy;
+import org.drools.core.addon.AlphaNodeOrderingStrategyProvider;
 import org.drools.core.addon.NoopOrderingStrategy;
 import org.drools.core.base.ClassFieldAccessorCache;
 import org.drools.core.base.ClassObjectType;
@@ -224,7 +225,7 @@ public class KnowledgeBaseImpl
             sessionPool = newKieSessionsPool( this.config.getSessionPoolSize() );
         }
 
-        alphaNodeOrderingStrategy = AlphaNodeOrderingStrategy.createAlphaNodeOrderingStrategy(this.config.getAlphaNodeOrderingOption());
+        alphaNodeOrderingStrategy = AlphaNodeOrderingStrategyProvider.createAlphaNodeOrderingStrategy(this.config.getAlphaNodeOrderingOption());
     }
 
     @Override
@@ -506,7 +507,7 @@ public class KnowledgeBaseImpl
 
         this.getConfiguration().getComponentFactory().initTraitFactory(this);
 
-        this.alphaNodeOrderingStrategy = AlphaNodeOrderingStrategy.createAlphaNodeOrderingStrategy(this.config.getAlphaNodeOrderingOption());
+        this.alphaNodeOrderingStrategy = AlphaNodeOrderingStrategyProvider.createAlphaNodeOrderingStrategy(this.config.getAlphaNodeOrderingOption());
 
         rewireReteAfterDeserialization();
     }
