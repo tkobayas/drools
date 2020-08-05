@@ -111,7 +111,7 @@ public class DMNResultImpl implements DMNResult, DMNMessageManager {
 
     @Override
     public String toString() {
-        return "DMNResultImpl{" +
+        return this.getClass().getSimpleName() + "{" +
                "context=" + context +
                ", messages=" + messages +
                '}';

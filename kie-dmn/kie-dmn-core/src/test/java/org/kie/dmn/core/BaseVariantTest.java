@@ -229,10 +229,12 @@ public abstract class BaseVariantTest {
     private DMNResult evaluateTypeSafe(DMNRuntime runtime, DMNModel dmnModel, DMNContext context) {
         Map<String, Object> inputMap = context.getAll();
         FEELPropertyAccessible inputSet;
+        FEELPropertyAccessible outputSet;
         try {
             inputSet = createInstanceFromCompiledClasses(allCompiledClasses, factory.create(dmnModel), "InputSet");
             inputSet.fromMap(inputMap);
-            return runtime.evaluateAll(dmnModel, new DMNContextFPAImpl(inputSet));
+            outputSet = createInstanceFromCompiledClasses(allCompiledClasses, factory.create(dmnModel), "OutputSet");
+            return runtime.evaluateAll(dmnModel, new DMNContextFPAImpl(inputSet, outputSet));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -241,10 +243,12 @@ public abstract class BaseVariantTest {
     private DMNResult evaluateDecisionServiceTypeSafe(DMNRuntime runtime, DMNModel dmnModel, DMNContext context, String decisionServiceName) {
         Map<String, Object> inputMap = context.getAll();
         FEELPropertyAccessible inputSet;
+        FEELPropertyAccessible outputSet;
         try {
             inputSet = createInstanceFromCompiledClasses(allCompiledClasses, factory.create(dmnModel), "InputSet");
             inputSet.fromMap(inputMap);
-            return runtime.evaluateDecisionService(dmnModel, new DMNContextFPAImpl(inputSet), decisionServiceName);
+            outputSet = createInstanceFromCompiledClasses(allCompiledClasses, factory.create(dmnModel), "OutputSet");
+            return runtime.evaluateDecisionService(dmnModel, new DMNContextFPAImpl(inputSet, outputSet), decisionServiceName);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

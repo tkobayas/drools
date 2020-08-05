@@ -38,6 +38,7 @@ import org.kie.dmn.api.core.DMNRuntime;
 import org.kie.dmn.api.core.FEELPropertyAccessible;
 import org.kie.dmn.api.core.ast.InputDataNode;
 import org.kie.dmn.core.api.DMNFactory;
+import org.kie.dmn.core.impl.DMNResultFPAImpl;
 import org.kie.dmn.core.model.Person;
 import org.kie.dmn.core.util.DMNRuntimeUtil;
 import org.kie.dmn.feel.lang.types.impl.ComparablePeriod;
@@ -134,7 +135,7 @@ public class DMNStronglyTypedSupportTest extends BaseVariantTest {
         context.set("Day", 22);
         context.set("oneHour", Duration.parse("PT1H")); // <variable name="oneHour" typeRef="feel:days and time duration"/>
         context.set("durationString", "P13DT2H14S");      // <variable name="durationString" typeRef="feel:string"/>
-        final DMNResult dmnResult = runtime.evaluateAll(dmnModel, context);
+        final DMNResult dmnResult = evaluateModel(runtime, dmnModel, context);
         final DMNContext ctx = dmnResult.getContext();
 
         assertThat(DMNRuntimeUtil.formatMessages(dmnResult.getMessages()), dmnResult.hasErrors(), is(false));
@@ -164,7 +165,7 @@ public class DMNStronglyTypedSupportTest extends BaseVariantTest {
         assertThat(ctx.get("d1seconds"), is(BigDecimal.valueOf(14)));
 
         if (isTypeSafe()) {
-            FEELPropertyAccessible outputSet = convertToOutputSet(dmnModel, dmnResult);
+            FEELPropertyAccessible outputSet = ((DMNResultFPAImpl)dmnResult).getOutputSet();
             Map<String, Object> allProperties = outputSet.allFEELProperties();
             assertThat(allProperties.get("Date-Time"), is(ZonedDateTime.of(2016, 12, 24, 23, 59, 0, 0, ZoneOffset.ofHours(-5))));
             FEELPropertyAccessible resultDate = (FEELPropertyAccessible)allProperties.get("Date");
@@ -204,11 +205,11 @@ public class DMNStronglyTypedSupportTest extends BaseVariantTest {
 
         final DMNContext context = DMNFactory.newContext();
         context.set("datetimestring", "2016-07-29T05:48:23");
-        final DMNResult dmnResult = runtime.evaluateAll(dmnModel, context);
+        final DMNResult dmnResult = evaluateModel(runtime, dmnModel, context);
         assertThat(DMNRuntimeUtil.formatMessages(dmnResult.getMessages()), dmnResult.getContext().get("time"), is(LocalTime.of(5, 48, 23)));
 
         if (isTypeSafe()) {
-            FEELPropertyAccessible outputSet = convertToOutputSet(dmnModel, dmnResult);
+            FEELPropertyAccessible outputSet = ((DMNResultFPAImpl)dmnResult).getOutputSet();
             Map<String, Object> allProperties = outputSet.allFEELProperties();
             assertThat(allProperties.get("time"), is(LocalTime.of(5, 48, 23)));
         }
@@ -236,7 +237,7 @@ public class DMNStronglyTypedSupportTest extends BaseVariantTest {
         assertThat((Map<?, ?>) result.get("DecisionNumberInList"), hasEntry(is("Result_4"), is(true)));
 
         if (isTypeSafe()) {
-            FEELPropertyAccessible outputSet = convertToOutputSet(dmnModel, dmnResult);
+            FEELPropertyAccessible outputSet = ((DMNResultFPAImpl)dmnResult).getOutputSet();
             Map<String, Object> allProperties = outputSet.allFEELProperties();
             Map<?, ?> resultMap = (Map<?, ?>) allProperties.get("DecisionNumberInList");
             assertThat(resultMap, hasEntry(is("Result_1_OK"), is(true)));
@@ -264,7 +265,7 @@ public class DMNStronglyTypedSupportTest extends BaseVariantTest {
         assertThat((List<?>) result.get("D5"), contains(is("r1"), is("r2")));
 
         if (isTypeSafe()) {
-            FEELPropertyAccessible outputSet = convertToOutputSet(dmnModel, dmnResult);
+            FEELPropertyAccessible outputSet = ((DMNResultFPAImpl)dmnResult).getOutputSet();
             Map<String, Object> allProperties = outputSet.allFEELProperties();
             assertThat(allProperties.get("D4"), is("Contains r1"));
             assertThat((List<?>) allProperties.get("D5"), contains(is("r1"), is("r2")));
