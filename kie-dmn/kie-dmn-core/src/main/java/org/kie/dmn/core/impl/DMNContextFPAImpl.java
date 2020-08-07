@@ -29,20 +29,12 @@ import org.kie.dmn.core.impl.DMNContextImpl.ScopeReference;
 
 public class DMNContextFPAImpl implements DMNContext {
 
-    private final FEELPropertyAccessible inputSet;
-    private final FEELPropertyAccessible outputSet;
+    private final FEELPropertyAccessible fpa;
     private Deque<ScopeReference> stack = new LinkedList<>();
     private DMNMetadataImpl metadata;
 
-    public DMNContextFPAImpl(FEELPropertyAccessible inputSet) {
-        this.inputSet = inputSet;
-        this.outputSet = null;
-        this.metadata = new DMNMetadataImpl();
-    }
-
-    public DMNContextFPAImpl(FEELPropertyAccessible inputSet, FEELPropertyAccessible outputSet) {
-        this.inputSet = inputSet;
-        this.outputSet = outputSet;
+    public DMNContextFPAImpl(FEELPropertyAccessible bean) {
+        this.fpa = bean;
         this.metadata = new DMNMetadataImpl();
     }
 
@@ -53,12 +45,12 @@ public class DMNContextFPAImpl implements DMNContext {
 
     @Override
     public Object get(String name) {
-        return inputSet.getFEELProperty(name).toOptional().orElse(null);
+        return fpa.getFEELProperty(name).toOptional().orElse(null);
     }
 
     private Map<String, Object> getCurrentEntries() {
         if (stack.isEmpty()) {
-            return inputSet.allFEELProperties();
+            return fpa.allFEELProperties();
         } else {
             return stack.peek().getRef(); // Intentional, symbol resolution in scope should limit at the top of the stack (for DMN semantic).
         }
@@ -99,13 +91,9 @@ public class DMNContextFPAImpl implements DMNContext {
         return this.metadata;
     }
 
-    public FEELPropertyAccessible getOutputSet() {
-        return outputSet;
-    }
-
     @Override
     public DMNContext clone() {
-        DMNContextImpl newCtx = new DMNContextImpl(inputSet.allFEELProperties(), metadata.asMap());
+        DMNContextImpl newCtx = new DMNContextImpl(fpa.allFEELProperties(), metadata.asMap());
         for (ScopeReference e : stack) {
             newCtx.pushScope(e.getName(), e.getNamespace());
         }

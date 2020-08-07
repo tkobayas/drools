@@ -17,14 +17,7 @@
 package org.kie.dmn.typesafe;
 
 public class DMNTypeSafeException extends RuntimeException {
-
-    private static final long serialVersionUID = 1L;
-
     public DMNTypeSafeException(String message) {
         super(message);
-    }
-
-    public DMNTypeSafeException(String message, Throwable cause) {
-        super(message, cause);
     }
 }
