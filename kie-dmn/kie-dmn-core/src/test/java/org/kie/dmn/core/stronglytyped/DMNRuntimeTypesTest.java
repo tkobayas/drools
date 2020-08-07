@@ -490,7 +490,7 @@ public class DMNRuntimeTypesTest extends BaseVariantTest {
         // evaluateAll
         final DMNContext context2 = DMNFactory.newContext();
 
-        final DMNResult dmnResult2 = runtime.evaluateAll(dmnModel, context2);
+        final DMNResult dmnResult2 = evaluateModel(runtime, dmnModel, context2);
         LOG.debug("{}", dmnResult2);
         dmnResult2.getDecisionResults().forEach(x -> LOG.debug("{}", x));
         assertThat(DMNRuntimeUtil.formatMessages(dmnResult2.getMessages()), dmnResult2.hasErrors(), is(false));

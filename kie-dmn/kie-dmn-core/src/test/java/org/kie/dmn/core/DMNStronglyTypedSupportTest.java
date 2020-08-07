@@ -134,7 +134,7 @@ public class DMNStronglyTypedSupportTest extends BaseVariantTest {
         context.set("Day", 22);
         context.set("oneHour", Duration.parse("PT1H")); // <variable name="oneHour" typeRef="feel:days and time duration"/>
         context.set("durationString", "P13DT2H14S");      // <variable name="durationString" typeRef="feel:string"/>
-        final DMNResult dmnResult = runtime.evaluateAll(dmnModel, context);
+        final DMNResult dmnResult = evaluateModel(runtime, dmnModel, context);
         final DMNContext ctx = dmnResult.getContext();
 
         assertThat(DMNRuntimeUtil.formatMessages(dmnResult.getMessages()), dmnResult.hasErrors(), is(false));
@@ -204,7 +204,7 @@ public class DMNStronglyTypedSupportTest extends BaseVariantTest {
 
         final DMNContext context = DMNFactory.newContext();
         context.set("datetimestring", "2016-07-29T05:48:23");
-        final DMNResult dmnResult = runtime.evaluateAll(dmnModel, context);
+        final DMNResult dmnResult = evaluateModel(runtime, dmnModel, context);
         assertThat(DMNRuntimeUtil.formatMessages(dmnResult.getMessages()), dmnResult.getContext().get("time"), is(LocalTime.of(5, 48, 23)));
 
         if (isTypeSafe()) {
