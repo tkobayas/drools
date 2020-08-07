@@ -262,6 +262,12 @@ public abstract class BaseVariantTest {
         }
     }
 
+    public Class<?> getOutputSetClass(DMNModel dmnModel) {
+        Class<?> outputSetClass = allCompiledClasses.get(factory.create(dmnModel).appendPackage("OutputSet"));
+        assertThat(outputSetClass, notNullValue());
+        return outputSetClass;
+    }
+
     /**
      * Utility test method, for class inspection.
      */

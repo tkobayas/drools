@@ -20,4 +20,8 @@ public class DMNTypeSafeException extends RuntimeException {
     public DMNTypeSafeException(String message) {
         super(message);
     }
+
+    public DMNTypeSafeException(String message, Throwable th) {
+        super(message, th);
+    }
 }

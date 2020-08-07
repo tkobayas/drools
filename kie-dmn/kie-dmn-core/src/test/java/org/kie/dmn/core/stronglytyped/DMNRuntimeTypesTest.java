@@ -119,7 +119,8 @@ public class DMNRuntimeTypesTest extends BaseVariantTest {
         assertThat(dmnResult.getDecisionResultByName("DecisionTime").getResult(), is(LocalTime.of(10, 0)));
 
         if (isTypeSafe()) {
-            FEELPropertyAccessible outputSet = convertToOutputSet(dmnModel, dmnResult);
+            DMNContextTypeSafeImpl resultContext = (DMNContextTypeSafeImpl)dmnResult.getContext();
+            FEELPropertyAccessible outputSet = resultContext.getFpa(getOutputSetClass(dmnModel));
             Map<String, Object> allProperties = outputSet.allFEELProperties();
             assertThat(allProperties.get("DecisionString"), is("Hello, John Doe"));
             assertThat(allProperties.get("DecisionNumber"), is(new BigDecimal(2)));
