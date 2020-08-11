@@ -693,7 +693,7 @@ public class MvelConstraint extends MutableTypeConstraint implements IndexableCo
     /**
      * Splits the expression in token (words) ignoring everything that is between quotes
      */
-    private static List<String> splitExpression(String expression) {
+    public static List<String> splitExpression(String expression) {
         List<String> tokens = new ArrayList<String>();
         int lastStart = -1;
         boolean isQuoted = false;

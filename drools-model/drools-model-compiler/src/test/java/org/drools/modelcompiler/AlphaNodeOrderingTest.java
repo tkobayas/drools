@@ -175,6 +175,14 @@ public class AlphaNodeOrderingTest extends BaseModelTest {
                      "import " + Address.class.getCanonicalName() + "\n" +
                      "rule R1 when\n" +
                      "  $p : Person(address != null, address.street == \"ABC street\")\n" +
+//"  $p : Person((!(likes == null) || !(address == null)), address.street == \"ABC street\")\n" +
+//"  $p : Person(!(likes == null || address == null), address.street == \"ABC street\")\n" +
+//"  $p : Person((likes != null && address != null), address.street == \"ABC street\")\n" +
+//"  $p : Person((!(likes == null) || !(address == null)), address.street == \"ABC street\")\n" +
+//"  $p : Person((!(likes == null) || !(address == null)), address.street == \"ABC street\")\n" +
+
+//"  $p : Person(null != address, address.street == \"ABC street\")\n" +
+
                      "then\n" +
                      "end\n" +
                      "rule R2 when\n" +

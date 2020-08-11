@@ -51,7 +51,7 @@ public interface AlphaNodeOrderingStrategyProvider {
 
         private static class LazyHolder {
 
-            private static AlphaNodeOrderingStrategyProvider instance = createProvider();
+            private static final AlphaNodeOrderingStrategyProvider INSTANCE = createProvider();
 
             private static AlphaNodeOrderingStrategyProvider createProvider() {
                 AlphaNodeOrderingStrategyProvider provider = ServiceRegistry.getInstance().get(AlphaNodeOrderingStrategyProvider.class);
@@ -60,7 +60,7 @@ public interface AlphaNodeOrderingStrategyProvider {
         }
 
         public static AlphaNodeOrderingStrategyProvider get() {
-            return LazyHolder.instance;
+            return LazyHolder.INSTANCE;
         }
 
         private Factory() {}
