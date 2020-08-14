@@ -69,6 +69,7 @@ public class ExecModelLambdaPostProcessor {
     private final Collection<String> imports;
     private final Collection<String> staticImports;
     private final Map<LambdaExpr, java.lang.reflect.Type> lambdaReturnTypes;
+    private final Map<LambdaExpr, String> lambdaOriginalDrlConstraints;
     private final CompilationUnit clone;
 
     private static final PrettyPrinterConfiguration configuration = new PrettyPrinterConfiguration();
@@ -87,6 +88,7 @@ public class ExecModelLambdaPostProcessor {
         this.imports = pkgModel.getImports();
         this.staticImports = pkgModel.getStaticImports();
         this.lambdaReturnTypes = pkgModel.getLambdaReturnTypes();
+        this.lambdaOriginalDrlConstraints = pkgModel.getLambdaOriginalDrlConstraints();
         this.clone = clone;
     }
 
@@ -96,6 +98,7 @@ public class ExecModelLambdaPostProcessor {
                                         Collection<String> imports,
                                         Collection<String> staticImports,
                                         Map<LambdaExpr, java.lang.reflect.Type> lambdaReturnTypes,
+                                        Map<LambdaExpr, String> lambdaOriginalDrlConstraints,
                                         CompilationUnit clone) {
         this.lambdaClasses = lambdaClasses;
         this.packageName = packageName;
@@ -103,11 +106,14 @@ public class ExecModelLambdaPostProcessor {
         this.imports = imports;
         this.staticImports = staticImports;
         this.lambdaReturnTypes = lambdaReturnTypes;
+        this.lambdaOriginalDrlConstraints = lambdaOriginalDrlConstraints;
         this.clone = clone;
     }
 
     public void convertLambdas() {
 
+        System.out.println("***************************");
+        
         clone.findAll(MethodCallExpr.class, mc -> PatternExpressionBuilder.EXPR_CALL.equals(mc.getNameAsString()) ||
                                                   FlowExpressionBuilder.EXPR_CALL.equals(mc.getNameAsString()))
              .forEach(methodCallExpr1 -> {
@@ -356,7 +362,13 @@ public class ExecModelLambdaPostProcessor {
 
     private void replaceLambda(LambdaExpr lambdaExpr, Supplier<MaterializedLambda> lambdaExtractor) {
         try {
-            CreatedClass aClass = lambdaExtractor.get().create(lambdaExpr.toString(), imports, staticImports);
+            MaterializedLambda materializedLambda = lambdaExtractor.get();
+            if (materializedLambda instanceof MaterializedLambdaPredicate) {
+                String originalDrlConstraint = lambdaOriginalDrlConstraints.get(lambdaExpr);
+                ((MaterializedLambdaPredicate) materializedLambda).setOriginalDrlConstraint(originalDrlConstraint);
+            }
+            CreatedClass aClass = materializedLambda.create(lambdaExpr.toString(), imports, staticImports);
+
             lambdaClasses.put(aClass.getClassNameWithPackage(), aClass);
 
             ClassOrInterfaceType type = StaticJavaParser.parseClassOrInterfaceType(aClass.getClassNameWithPackage());

@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.drools.core.reteoo.AlphaNode;
-import org.drools.modelcompiler.BaseModelTest.RUN_TYPE;
 import org.drools.modelcompiler.domain.Address;
 import org.drools.modelcompiler.domain.Person;
 import org.junit.Test;
@@ -30,21 +29,25 @@ import org.kie.api.builder.model.KieModuleModel;
 import org.kie.api.conf.AlphaNodeOrderingOption;
 import org.kie.api.runtime.KieSession;
 
-import static org.drools.modelcompiler.BaseModelTest.RUN_TYPE.FLOW_DSL;
-import static org.drools.modelcompiler.BaseModelTest.RUN_TYPE.PATTERN_DSL;
 import static org.junit.Assert.assertEquals;
 
 public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
+            private static final AlphaNodeOrderingOption TEST_OPTION = AlphaNodeOrderingOption.NONE;
+//    private static final AlphaNodeOrderingOption TEST_OPTION = AlphaNodeOrderingOption.COUNT;
+
+    private static final String EXTERNALISE_LAMBDA = Boolean.TRUE.toString();
+
     // just for quick test
-    final static Object[] STANDARD = {
-                                      RUN_TYPE.STANDARD_FROM_DRL,
+    final static Object[] QUICK_TEST = {
+                                        RUN_TYPE.STANDARD_FROM_DRL,
+            //                                      RUN_TYPE.PATTERN_DSL,
     };
 
-    @Parameters(name = "{0}")
-    public static Object[] params() {
-        return STANDARD;
-    }
+    //        @Parameters(name = "{0}")
+    //        public static Object[] params() {
+    //            return QUICK_TEST;
+    //        }
 
     public AlphaNodeOrderingNullCheckTest(RUN_TYPE testRunType) {
         super(testRunType);
@@ -69,10 +72,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -83,7 +86,8 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(4, alphaNodes.size()); // 4 in case of AlphaNodeOrderingOption.NONE
+        // don't reorder
+        assertEquals(4, alphaNodes.size());
 
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());
@@ -111,10 +115,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -134,7 +138,8 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
     @Test
     public void testNullSafeDereference() {
 
-        // Generates 2 MvelConstraints address != null, address.street == "ABC street"
+        // [STANDARD_FROM_DRL] Generates 2 MvelConstraints address != null, address.street == "ABC street"
+        // [PATTERN_DSL] 1 LambdaConstraint address!.street == "ABC street"
 
         String str =
                 "import " + Person.class.getCanonicalName() + "\n" +
@@ -153,10 +158,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -167,8 +172,12 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(4, alphaNodes.size()); // 4 in case of AlphaNodeOrderingOption.NONE
-
+        // don't reorder
+        if (testRunType.equals(RUN_TYPE.STANDARD_FROM_DRL)) {
+            assertEquals(4, alphaNodes.size());
+        } else {
+            assertEquals(3, alphaNodes.size());
+        }
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());
     }
@@ -176,7 +185,8 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
     @Test
     public void testNullCheckAnd() {
 
-        // Split to 2 MvelConstraints likes != null, address != null
+        // [STANDARD_FROM_DRL] Split to 2 MvelConstraints likes != null, address != null
+        // [PATTERN_DSL] 1 LambdaConstraint (likes != null && address != null)
 
         String str =
                 "import " + Person.class.getCanonicalName() + "\n" +
@@ -195,21 +205,28 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
         KieSession ksession = getKieSession(model, str);
+
+        ReteDumper.dumpRete(ksession);
 
         List<AlphaNode> alphaNodes = ReteDumper.collectNodes(ksession)
                                                .stream()
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(5, alphaNodes.size()); // 5 in case of AlphaNodeOrderingOption.NONE
+        // don't reorder
+        if (testRunType.equals(RUN_TYPE.STANDARD_FROM_DRL)) {
+            assertEquals(5, alphaNodes.size());
+        } else {
+            assertEquals(4, alphaNodes.size());
+        }
 
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());
@@ -218,7 +235,8 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
     @Test
     public void testNullCheckOr() {
 
-        // Converted to 2 MvelConstraints !( likes == null ), !( address == null )
+        // [STANDARD_FROM_DRL] Converted to 2 MvelConstraints !( likes == null ), !( address == null )
+        // [PATTERN_DSL] 1 LambdaConstraint !(likes == null || address == null)
 
         String str =
                 "import " + Person.class.getCanonicalName() + "\n" +
@@ -237,10 +255,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -251,7 +269,60 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(5, alphaNodes.size()); // 5 in case of AlphaNodeOrderingOption.NONE
+        // don't reorder
+        if (testRunType.equals(RUN_TYPE.STANDARD_FROM_DRL)) {
+            assertEquals(5, alphaNodes.size());
+        } else {
+            assertEquals(4, alphaNodes.size());
+        }
+
+        ksession.insert(new Person("Mario"));
+        assertEquals(0, ksession.fireAllRules());
+    }
+
+    @Test
+    public void testNullCheckOrExtraSpace() {
+
+        // [STANDARD_FROM_DRL] Converted to 2 MvelConstraints !( likes == null ), !( address == null )
+        // [PATTERN_DSL] 1 LambdaConstraint ! (likes == null || address == null)
+
+        String str =
+                "import " + Person.class.getCanonicalName() + "\n" +
+                     "rule R1 when\n" +
+                     "  $p : Person(! (likes == null || address == null), address.street == \"ABC street\")\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R2 when\n" +
+                     "  $p : Person(name != \"Mario\", address.street == \"ABC street\")\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R3 when\n" +
+                     "  $p : Person(name != \"Mario\")\n" +
+                     "then\n" +
+                     "end\n";
+
+        KieModuleModel model = KieServices.get().newKieModuleModel();
+        model
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
+             .newKieBaseModel("kb")
+             .setDefault(true)
+             .setAlphaNodeOrdering(TEST_OPTION)
+             .newKieSessionModel("ks")
+             .setDefault(true);
+
+        KieSession ksession = getKieSession(model, str);
+
+        List<AlphaNode> alphaNodes = ReteDumper.collectNodes(ksession)
+                                               .stream()
+                                               .filter(AlphaNode.class::isInstance)
+                                               .map(node -> (AlphaNode) node)
+                                               .collect(Collectors.toList());
+        // don't reorder
+        if (testRunType.equals(RUN_TYPE.STANDARD_FROM_DRL)) {
+            assertEquals(5, alphaNodes.size());
+        } else {
+            assertEquals(4, alphaNodes.size());
+        }
 
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());
@@ -260,7 +331,8 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
     @Test
     public void testNullCheckOrInverse() {
 
-        // Converted&Normalized to 2 MvelConstraints !( likes == null ), !( address == null )
+        // [STANDARD_FROM_DRL] Converted&Normalized to 2 MvelConstraints !( likes == null ), !( address == null )
+        // [PATTERN_DSL] 1 LambdaConstraint !(null == likes || null == address)
 
         String str =
                 "import " + Person.class.getCanonicalName() + "\n" +
@@ -279,10 +351,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -293,7 +365,12 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(5, alphaNodes.size()); // 5 in case of AlphaNodeOrderingOption.NONE
+        // don't reorder
+        if (testRunType.equals(RUN_TYPE.STANDARD_FROM_DRL)) {
+            assertEquals(5, alphaNodes.size());
+        } else {
+            assertEquals(4, alphaNodes.size());
+        }
 
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());
@@ -322,10 +399,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -336,10 +413,56 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(4, alphaNodes.size()); // 4 in case of AlphaNodeOrderingOption.NONE
+        // don't reorder
+        assertEquals(4, alphaNodes.size());
 
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());
+    }
+
+    @Test
+    public void testNullCheckOr2() {
+
+        // 1 MvelConstraint (address == null || address.street == \"ABC street\")
+
+        String str =
+                "import " + Person.class.getCanonicalName() + "\n" +
+                     "rule R1 when\n" +
+                     "  $p : Person(address == null || address.street == \"ABC street\")\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R2 when\n" +
+                     "  $p : Person(name != \"Mario\", address.street == \"ABC street\")\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R3 when\n" +
+                     "  $p : Person(name != \"Mario\")\n" +
+                     "then\n" +
+                     "end\n";
+
+        KieModuleModel model = KieServices.get().newKieModuleModel();
+        model
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
+             .newKieBaseModel("kb")
+             .setDefault(true)
+             .setAlphaNodeOrdering(TEST_OPTION)
+             .newKieSessionModel("ks")
+             .setDefault(true);
+
+        KieSession ksession = getKieSession(model, str);
+
+        //ReteDumper.dumpRete(ksession);
+
+        List<AlphaNode> alphaNodes = ReteDumper.collectNodes(ksession)
+                                               .stream()
+                                               .filter(AlphaNode.class::isInstance)
+                                               .map(node -> (AlphaNode) node)
+                                               .collect(Collectors.toList());
+        // don't reorder
+        assertEquals(3, alphaNodes.size());
+
+        ksession.insert(new Person("Mario"));
+        assertEquals(1, ksession.fireAllRules());
     }
 
     @Test
@@ -365,10 +488,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -379,7 +502,8 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(4, alphaNodes.size()); // 4 in case of AlphaNodeOrderingOption.NONE
+        // don't reorder
+        assertEquals(4, alphaNodes.size());
 
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());
@@ -407,10 +531,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -421,7 +545,8 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(4, alphaNodes.size()); // 4 in case of AlphaNodeOrderingOption.NONE
+        // don't reorder
+        assertEquals(4, alphaNodes.size());
 
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());
@@ -449,10 +574,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -463,7 +588,8 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(4, alphaNodes.size()); // 4 in case of AlphaNodeOrderingOption.NONE
+        // don't reorder
+        assertEquals(4, alphaNodes.size());
 
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());
@@ -491,10 +617,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -505,7 +631,8 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(4, alphaNodes.size()); // 4 in case of AlphaNodeOrderingOption.NONE
+        // don't reorder
+        assertEquals(4, alphaNodes.size());
 
         Person person = new Person("Mario");
         person.setAddress(new Address(null, 1, "XYZ"));
@@ -535,10 +662,10 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -549,7 +676,8 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
-        assertEquals(4, alphaNodes.size()); // 4 in case of AlphaNodeOrderingOption.NONE
+        // don't reorder
+        assertEquals(4, alphaNodes.size());
 
         Person person = new Person("Mario");
         person.setAddress(new Address(null, 1, "XYZ"));
@@ -566,7 +694,7 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                      "then\n" +
                      "end\n" +
                      "rule R2 when\n" +
-                     "  $p : Person(name != \"Mario\", age > 20, address.street == \"ABC street\")\n" +
+                     "  $p : Person(address != null, name != \"Mario\", age > 20, address.street == \"ABC street\")\n" +
                      "then\n" +
                      "end\n" +
                      "rule R3 when\n" +
@@ -576,10 +704,104 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
 
         KieModuleModel model = KieServices.get().newKieModuleModel();
         model
-             //.setConfigurationProperty("drools.externaliseCanonicalModelLambda", Boolean.FALSE.toString())
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
              .newKieBaseModel("kb")
              .setDefault(true)
-             .setAlphaNodeOrdering(AlphaNodeOrderingOption.COUNT)
+             .setAlphaNodeOrdering(TEST_OPTION)
+             .newKieSessionModel("ks")
+             .setDefault(true);
+
+        KieSession ksession = getKieSession(model, str);
+
+        ReteDumper.dumpRete(ksession);
+
+        List<AlphaNode> alphaNodes = ReteDumper.collectNodes(ksession)
+                                               .stream()
+                                               .filter(AlphaNode.class::isInstance)
+                                               .map(node -> (AlphaNode) node)
+                                               .collect(Collectors.toList());
+
+        // Reduced!
+        if (TEST_OPTION == AlphaNodeOrderingOption.NONE) {
+            assertEquals(7, alphaNodes.size());
+        } else if (TEST_OPTION == AlphaNodeOrderingOption.COUNT) {
+            assertEquals(4, alphaNodes.size());
+        }
+
+        ksession.insert(new Person("Mario"));
+        assertEquals(0, ksession.fireAllRules());
+    }
+
+    @Test
+    public void testNullCheckInbetween() {
+        String str =
+                "import " + Person.class.getCanonicalName() + "\n" +
+                     "rule R1 when\n" +
+                     "  $p : Person(address != null, address.street == \"ABC street\", name != \"Mario\")\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R2 when\n" +
+                     "  $p : Person(name != \"Mario\", age > 20, address != null, address.street == \"ABC street\")\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R3 when\n" +
+                     "  $p : Person(name != \"Mario\")\n" +
+                     "then\n" +
+                     "end\n";
+
+        KieModuleModel model = KieServices.get().newKieModuleModel();
+        model
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
+             .newKieBaseModel("kb")
+             .setDefault(true)
+             .setAlphaNodeOrdering(TEST_OPTION)
+             .newKieSessionModel("ks")
+             .setDefault(true);
+
+        KieSession ksession = getKieSession(model, str);
+
+        ReteDumper.dumpRete(ksession);
+
+        List<AlphaNode> alphaNodes = ReteDumper.collectNodes(ksession)
+                                               .stream()
+                                               .filter(AlphaNode.class::isInstance)
+                                               .map(node -> (AlphaNode) node)
+                                               .collect(Collectors.toList());
+
+        // Reduced!
+        if (TEST_OPTION == AlphaNodeOrderingOption.NONE) {
+            assertEquals(7, alphaNodes.size());
+        } else if (TEST_OPTION == AlphaNodeOrderingOption.COUNT) {
+            assertEquals(4, alphaNodes.size());
+        }
+
+        ksession.insert(new Person("Mario"));
+        assertEquals(0, ksession.fireAllRules());
+    }
+
+    @Test
+    public void testNullCheckMap() {
+        String str =
+                "import " + Person.class.getCanonicalName() + "\n" +
+                     "rule R1 when\n" +
+                     "  $p : Person(itemsString[\"ABC\"] != null, itemsString[\"ABC\"].length() == 5)\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R2 when\n" +
+                     "  $p : Person(name != \"Mario\", itemsString[\"ABC\"].length() == 5)\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R3 when\n" +
+                     "  $p : Person(name != \"Mario\")\n" +
+                     "then\n" +
+                     "end\n";
+
+        KieModuleModel model = KieServices.get().newKieModuleModel();
+        model
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
+             .newKieBaseModel("kb")
+             .setDefault(true)
+             .setAlphaNodeOrdering(TEST_OPTION)
              .newKieSessionModel("ks")
              .setDefault(true);
 
@@ -590,13 +812,94 @@ public class AlphaNodeOrderingNullCheckTest extends BaseModelTest {
                                                .filter(AlphaNode.class::isInstance)
                                                .map(node -> (AlphaNode) node)
                                                .collect(Collectors.toList());
+        // don't reorder
+        assertEquals(4, alphaNodes.size());
 
-        ReteDumper.dumpRete(ksession);
-        
-        System.out.println(alphaNodes.size());
+        Person person = new Person("Mario");
+        person.getItemsString().put("ABC", null);
+        ksession.insert(person);
+        assertEquals(0, ksession.fireAllRules());
+    }
 
-        // Reduced!
-        assertEquals(5, alphaNodes.size()); // 6 in case of AlphaNodeOrderingOption.NONE
+    @Test
+    public void testNullCheckList() {
+        String str =
+                "import " + Person.class.getCanonicalName() + "\n" +
+                     "rule R1 when\n" +
+                     "  $p : Person(addresses[1] != null, addresses[1].street == \"ABC street\")\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R2 when\n" +
+                     "  $p : Person(name != \"Mario\", addresses[1].street == \"ABC street\")\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R3 when\n" +
+                     "  $p : Person(name != \"Mario\")\n" +
+                     "then\n" +
+                     "end\n";
+
+        KieModuleModel model = KieServices.get().newKieModuleModel();
+        model
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
+             .newKieBaseModel("kb")
+             .setDefault(true)
+             .setAlphaNodeOrdering(TEST_OPTION)
+             .newKieSessionModel("ks")
+             .setDefault(true);
+
+        KieSession ksession = getKieSession(model, str);
+
+        List<AlphaNode> alphaNodes = ReteDumper.collectNodes(ksession)
+                                               .stream()
+                                               .filter(AlphaNode.class::isInstance)
+                                               .map(node -> (AlphaNode) node)
+                                               .collect(Collectors.toList());
+        // don't reorder
+        assertEquals(4, alphaNodes.size());
+
+        Person person = new Person("Mario");
+        person.getAddresses().add(new Address("XXX", 0, "ZZZ"));
+        person.getAddresses().add(null);
+        person.getAddresses().add(new Address("YYY", 2, "ZZZ"));
+        ksession.insert(person);
+        assertEquals(0, ksession.fireAllRules());
+    }
+
+    @Test
+    public void testNullCheckTrim() {
+        String str =
+                "import " + Person.class.getCanonicalName() + "\n" +
+                     "rule R1 when\n" +
+                     "  $p : Person(address!=null, address.street==\"ABC street\")\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R2 when\n" +
+                     "  $p : Person(name!=\"Mario\", address.street==\"ABC street\")\n" +
+                     "then\n" +
+                     "end\n" +
+                     "rule R3 when\n" +
+                     "  $p : Person(name!=\"Mario\")\n" +
+                     "then\n" +
+                     "end\n";
+
+        KieModuleModel model = KieServices.get().newKieModuleModel();
+        model
+             .setConfigurationProperty("drools.externaliseCanonicalModelLambda", EXTERNALISE_LAMBDA)
+             .newKieBaseModel("kb")
+             .setDefault(true)
+             .setAlphaNodeOrdering(TEST_OPTION)
+             .newKieSessionModel("ks")
+             .setDefault(true);
+
+        KieSession ksession = getKieSession(model, str);
+
+        List<AlphaNode> alphaNodes = ReteDumper.collectNodes(ksession)
+                                               .stream()
+                                               .filter(AlphaNode.class::isInstance)
+                                               .map(node -> (AlphaNode) node)
+                                               .collect(Collectors.toList());
+        // don't reorder
+        assertEquals(4, alphaNodes.size());
 
         ksession.insert(new Person("Mario"));
         assertEquals(0, ksession.fireAllRules());

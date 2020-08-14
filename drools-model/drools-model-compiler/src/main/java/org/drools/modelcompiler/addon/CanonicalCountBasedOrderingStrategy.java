@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,6 +46,13 @@ import org.drools.core.rule.RuleConditionElement;
 import org.drools.core.rule.constraint.MvelConstraint;
 import org.drools.core.spi.AlphaNodeFieldConstraint;
 import org.drools.core.spi.ObjectType;
+import org.drools.model.SingleConstraint;
+import org.drools.model.constraints.SingleConstraint1;
+import org.drools.model.functions.IntrospectableLambda;
+import org.drools.model.functions.Predicate1;
+import org.drools.model.functions.PredicateN;
+import org.drools.modelcompiler.constraints.ConstraintEvaluator;
+import org.drools.modelcompiler.constraints.LambdaConstraint;
 import org.kie.api.definition.rule.Rule;
 import org.mvel2.util.PropertyTools;
 import org.slf4j.Logger;
@@ -61,6 +69,10 @@ public class CanonicalCountBasedOrderingStrategy implements AlphaNodeOrderingStr
 
     private Map<ObjectType, Map<AlphaNodeFieldConstraint, Integer>> analyzedAlphaConstraints = new HashMap<>();
 
+    private Map<AlphaNodeFieldConstraint, List<String>> prioritizedConstraints = new HashMap<>();
+
+    private List<ObjectType> denyReorderList = new ArrayList<>();
+
     @Override
     public void analyzeAlphaConstraints(Map<String, InternalKnowledgePackage> pkgs, Collection<InternalKnowledgePackage> newPkgs) {
 
@@ -71,6 +83,7 @@ public class CanonicalCountBasedOrderingStrategy implements AlphaNodeOrderingStr
                .forEach(rule -> collectPatterns(((RuleImpl) rule).getLhs(), patternList));
         patternList.removeIf(Objects::isNull);
 
+        // count usage per constraint
         for (Pattern pattern : patternList) {
             ObjectType objectType = pattern.getObjectType();
             Map<AlphaNodeFieldConstraint, Integer> analyzedAlphaConstraintsPerObjectType = analyzedAlphaConstraints.computeIfAbsent(objectType, key -> new HashMap<AlphaNodeFieldConstraint, Integer>());
@@ -81,7 +94,16 @@ public class CanonicalCountBasedOrderingStrategy implements AlphaNodeOrderingStr
                    .forEach(constraint -> analyzedAlphaConstraintsPerObjectType.merge(constraint, 1, (count, newValue) -> count + 1));
         }
 
+        // store prioritized constraint (e.g. null-check) with affected properties
+        for (ObjectType objectType : analyzedAlphaConstraints.keySet()) {
+            Map<AlphaNodeFieldConstraint, Integer> analyzedAlphaConstraintsPerObjectType = analyzedAlphaConstraints.get(objectType);
+            analyzedAlphaConstraintsPerObjectType.keySet()
+                                                 .stream()
+                                                 .forEach(alphaConstraint -> prioritizeConstraint(alphaConstraint, objectType));
+        }
+
         logger.trace("analyzedAlphaConstraints : {}", analyzedAlphaConstraints);
+        logger.trace(" ** prioritizedConstraints : {}", prioritizedConstraints);
     }
 
     private Set<Rule> collectRules(Map<String, InternalKnowledgePackage> pkgs, Collection<InternalKnowledgePackage> newPkgs) {
@@ -128,25 +150,20 @@ public class CanonicalCountBasedOrderingStrategy implements AlphaNodeOrderingStr
 
         Map<AlphaNodeFieldConstraint, Integer> analyzedAlphaConstraintsPerObjectType = analyzedAlphaConstraints.get(objectType);
         if (analyzedAlphaConstraintsPerObjectType == null) {
-            logger.trace(" ** after alphaConstraints : {}", alphaConstraints);
+            logger.trace(" ** no analyzedAlphaConstraintsPerObjectType. alphaConstraints : {}", alphaConstraints);
+            return;
+        }
+        if (denyReorderList.contains(objectType)) {
+            logger.trace("  ** denyReorderList.contains objectType : {}", objectType);
+            System.out.println("  ** denyReorderList.contains objectType : " + objectType);
             return;
         }
 
         Class<?> clazz = objectType.getClassType();
 
-        // key=prioritizedConstraint, value=affected properties
-        Map<AlphaNodeFieldConstraint, List<String>> prioritizedConstraints = new HashMap<>();
-
-        for (AlphaNodeFieldConstraint alphaConstraint : alphaConstraints) {
-            System.out.println(alphaConstraint);
-            prioritizeConstraint(alphaConstraint, prioritizedConstraints, clazz);
-        }
-
-        logger.trace(" ** prioritizedConstraints : {}", prioritizedConstraints);
-
         alphaConstraints.sort((constraint1, constraint2) -> {
 
-            int compare = compareBasedOnPrioritization(constraint1, constraint2, prioritizedConstraints, clazz);
+            int compare = compareBasedOnPrioritization(constraint1, constraint2, clazz);
             logger.trace("[{}] [{}] -> {}", constraint1, constraint2, compare);
             if (compare != 0) {
                 return compare;
@@ -160,18 +177,18 @@ public class CanonicalCountBasedOrderingStrategy implements AlphaNodeOrderingStr
         System.out.println(" ** after alphaConstraints : " + alphaConstraints);
     }
 
-    private int compareBasedOnPrioritization(AlphaNodeFieldConstraint constraint1, AlphaNodeFieldConstraint constraint2, Map<AlphaNodeFieldConstraint, List<String>> prioritizedConstraints, Class<?> clazz) {
+    private int compareBasedOnPrioritization(AlphaNodeFieldConstraint constraint1, AlphaNodeFieldConstraint constraint2, Class<?> clazz) {
         boolean prioritized1 = prioritizedConstraints.containsKey(constraint1);
         boolean prioritized2 = prioritizedConstraints.containsKey(constraint2);
 
         if (prioritized1 && prioritized2 || !prioritized1 && !prioritized2) {
-            return 0;
+            return 0; // use count
         }
 
         if (prioritized1) {
             List<String> propList1 = prioritizedConstraints.get(constraint1);
             List<String> propList2 = getCheckedProp(constraint2, clazz);
-            if (propList1.isEmpty() || propList2.isEmpty() || !Collections.disjoint(propList1, propList2)) {
+            if (propList1.contains("this") || propList1.isEmpty() || propList2.isEmpty() || !Collections.disjoint(propList1, propList2)) {
                 return -1; // constraint1 first
             } else {
                 return 0;
@@ -179,7 +196,7 @@ public class CanonicalCountBasedOrderingStrategy implements AlphaNodeOrderingStr
         } else {
             List<String> propList2 = prioritizedConstraints.get(constraint2);
             List<String> propList1 = getCheckedProp(constraint1, clazz);
-            if (propList2.isEmpty() || propList1.isEmpty() || !Collections.disjoint(propList2, propList1)) {
+            if (propList2.contains("this") || propList2.isEmpty() || propList1.isEmpty() || !Collections.disjoint(propList2, propList1)) {
                 return 1; // constraint2 first
             } else {
                 return 0;
@@ -187,89 +204,121 @@ public class CanonicalCountBasedOrderingStrategy implements AlphaNodeOrderingStr
         }
     }
 
-    void prioritizeConstraint(AlphaNodeFieldConstraint alphaConstraint, Map<AlphaNodeFieldConstraint, List<String>> prioritizedConstraints, Class<?> clazz) {
+    void prioritizeConstraint(AlphaNodeFieldConstraint alphaConstraint, ObjectType objectType) {
+        if (denyReorderList.contains(objectType)) {
+            // no need to process
+            return;
+        }
+        String expression = getExpression(alphaConstraint);
+
+        if (expression != null) {
+            prioritizeConstraintWithExpression(alphaConstraint, expression, objectType);
+        } else {
+            // e.g. We cannot analyze non-externalized lambda. We shouldn't reorder at all for the objectType
+            denyReorderList.add(objectType);
+        }
+    }
+
+    private String getExpression(AlphaNodeFieldConstraint alphaConstraint) {
         if (alphaConstraint instanceof MvelConstraint) {
-            boolean potentialPriority = false;
-            AtomicBoolean propIsAmbiguous = new AtomicBoolean(false);
-            List<String> propList = new ArrayList<>();
-            MvelConstraint mvelConstraint = (MvelConstraint) alphaConstraint;
-            String expression = mvelConstraint.getExpression();
-            List<String> tokens = splitExpression(expression);
-            if (tokens.contains("null")) {
-                potentialPriority = true;
-                int size = tokens.size();
-                if (size == 3 && tokens.get(1).equals("!=") && tokens.get(2).equals("null")) {
-                    // address != null
-                    String target = tokens.get(0);
-                    addToPropList(target, propList, clazz, propIsAmbiguous);
-                } else if ((size == 5 || size == 6) && tokens.get(size - 3).equals("==") && tokens.get(size - 2).equals("null") && tokens.get(size - 1).equals(")")) {
-                    // !( address == null )
-                    String target;
-                    if (tokens.get(0).equals("!") && tokens.get(1).equals("(")) {
-                        target = tokens.get(2);
-                        addToPropList(target, propList, clazz, propIsAmbiguous);
-                    } else if (tokens.get(0).equals("!(")) {
-                        target = tokens.get(1);
-                        addToPropList(target, propList, clazz, propIsAmbiguous);
-                    } else {
-                        propIsAmbiguous.set(true);
-                    }
-                } else {
-                    // Don't parse other cases
-                    propIsAmbiguous.set(true);
-                }
+            return ((MvelConstraint) alphaConstraint).getExpression();
+        } else if (alphaConstraint instanceof LambdaConstraint) {
+            return ((LambdaConstraint) alphaConstraint).getOriginalDrlConstraint(); // non-externalized lambda returns null
+        } else {
+            // return null;
+            throw new RuntimeException("DEBUG : alphaConstraint = " + alphaConstraint);
+        }
+    }
+
+    private void prioritizeConstraintWithExpression(AlphaNodeFieldConstraint alphaConstraint, String expression, ObjectType objectType) {
+        Class<?> clazz = objectType.getClassType();
+        List<String> tokens = splitExpression(expression);
+
+        if (isPotentialNullcheck(tokens)) {
+            List<String> propList = collectPropsAffectedByNullCheck(tokens, clazz);
+            if (propList.isEmpty()) {
+                denyReorderList.add(objectType);
+                return;
+            } else {
+                prioritizedConstraints.put(alphaConstraint, propList);
             }
-            if (tokens.contains("instanceof")) {
-                potentialPriority = true;
-                int size = tokens.size();
-                if (size == 3 && tokens.get(size - 2).equals("instanceof") && !tokens.get(size - 1).equals(")")) {
-                    // address instanceof Address
-                    String target = tokens.get(0);
-                    addToPropList(target, propList, clazz, propIsAmbiguous);
-                } else if ((size == 5 || size == 6) && tokens.get(size - 3).equals("instanceof") && tokens.get(size - 1).equals(")")) {
-                    // !( address instanceof Address )
-                    String target;
-                    if (tokens.get(0).equals("!") && tokens.get(1).equals("(")) {
-                        target = tokens.get(2);
-                        addToPropList(target, propList, clazz, propIsAmbiguous);
-                    } else if (tokens.get(0).equals("!(")) {
-                        target = tokens.get(1);
-                        addToPropList(target, propList, clazz, propIsAmbiguous);
-                    } else {
-                        propIsAmbiguous.set(true);
-                    }
-                } else {
-                    // Don't parse other cases
-                    propIsAmbiguous.set(true);
-                }
-            }
-            if (potentialPriority) {
-                if (propIsAmbiguous.get()) {
-                    prioritizedConstraints.put(alphaConstraint, new ArrayList<>());
-                } else {
-                    prioritizedConstraints.put(alphaConstraint, propList);
-                }
+        }
+        if (isPotentialInstanceof(tokens)) {
+            List<String> propList = collectPropsAffectedByInstanceof(tokens, clazz);
+            if (propList.isEmpty()) {
+                denyReorderList.add(objectType);
+                return;
+            } else {
+                prioritizedConstraints.put(alphaConstraint, propList);
             }
         }
     }
 
-    private void addToPropList(String target, List<String> propList, Class<?> clazz, AtomicBoolean propIsAmbiguous) {
+    private boolean isPotentialNullcheck(List<String> tokens) {
+        return tokens.contains("null");
+    }
+
+    private boolean isPotentialInstanceof(List<String> tokens) {
+        return tokens.contains("instanceof");
+    }
+
+    private List<String> collectPropsAffectedByNullCheck(List<String> tokens, Class<?> clazz) {
+        // Currently, the size of the list is always one at most. However, it could be enhanced
+        List<String> propList = new ArrayList<>();
+        int size = tokens.size();
+        if (size == 3 && tokens.get(1).equals("!=") && tokens.get(2).equals("null")) {
+            // address != null
+            extractProp(tokens.get(0), clazz).ifPresent(propList::add);
+        } else if (size == 5 && tokens.get(0).equals("!(") && tokens.get(2).equals("==") && tokens.get(3).equals("null") && tokens.get(4).equals(")")) {
+            // !( address == null )
+            extractProp(tokens.get(1), clazz).ifPresent(propList::add);
+        } else if (size == 6 && tokens.get(0).equals("!") && tokens.get(1).equals("(") && tokens.get(3).equals("==") && tokens.get(4).equals("null") && tokens.get(5).equals(")")) {
+            // ! ( address == null )
+            extractProp(tokens.get(2), clazz).ifPresent(propList::add);
+        } else {
+            // Don't parse other cases
+        }
+        return propList;
+    }
+
+    private List<String> collectPropsAffectedByInstanceof(List<String> tokens, Class<?> clazz) {
+        List<String> propList = new ArrayList<>();
+        int size = tokens.size();
+        if (size == 3 && tokens.get(1).equals("instanceof")) {
+            // address instanceof Address
+            extractProp(tokens.get(0), clazz).ifPresent(propList::add);
+        } else if (size == 5 && tokens.get(0).equals("!(") && tokens.get(2).equals("instanceof") && tokens.get(4).equals(")")) {
+            // !( address instanceof Address )
+            extractProp(tokens.get(1), clazz).ifPresent(propList::add);
+        } else if (size == 6 && tokens.get(0).equals("!") && tokens.get(1).equals("(") && tokens.get(3).equals("instanceof") && tokens.get(5).equals(")")) {
+            // ! ( address instanceof Address )
+            extractProp(tokens.get(2), clazz).ifPresent(propList::add);
+        } else {
+            // Don't parse other cases
+        }
+        return propList;
+    }
+
+    private Optional<String> extractProp(String target, Class<?> clazz) {
+        if (target.equals("this")) {
+            return Optional.of(target);
+        }
         if (target.startsWith("this.")) {
             target = target.substring(5);
         }
         if (!target.contains(".")) {
             String prop = MvelConstraint.getPropertyNameFromSimpleExpression(target);
             if (!prop.isEmpty() && PropertyTools.getFieldOrAccessor(clazz, prop) != null) {
-                propList.add(prop);
+                return Optional.of(prop);
             } else {
-                propIsAmbiguous.set(true);
+                return Optional.empty();
             }
         } else {
             StringBuilder normalizedPropExpression = new StringBuilder();
             if (nestedPropExists(clazz, target, normalizedPropExpression)) {
-                propList.add(normalizedPropExpression.toString());
+                return Optional.of(normalizedPropExpression.toString());
             } else {
-                propIsAmbiguous.set(true);
+                return Optional.empty();
             }
         }
     }
@@ -307,24 +356,28 @@ public class CanonicalCountBasedOrderingStrategy implements AlphaNodeOrderingStr
     }
 
     List<String> getCheckedProp(AlphaNodeFieldConstraint alphaConstraint, Class<?> clazz) {
-        AtomicBoolean propIsAmbiguous = new AtomicBoolean(false);
         List<String> propList = new ArrayList<>();
-        if (alphaConstraint instanceof MvelConstraint) {
-            MvelConstraint mvelConstraint = (MvelConstraint) alphaConstraint;
-            String expression = mvelConstraint.getExpression();
-            List<String> tokens = splitExpression(expression);
-            for (String token : tokens) {
-                addToPropList(token, propList, clazz, propIsAmbiguous);
+        String expression = getExpression(alphaConstraint);
+        List<String> tokens = splitExpression(expression);
+        for (String token : tokens) {
+            Optional<String> optProp = extractProp(token, clazz);
+            if (optProp.isPresent()) {
+                addNestedPropChain(optProp.get(), propList);
             }
-        }
-        if (propIsAmbiguous.get()) {
-            propList = new ArrayList<>();
         }
         return propList;
     }
 
+    private void addNestedPropChain(String propStr, List<String> propList) {
+        propList.add(propStr);
+        int lastIndex = propStr.lastIndexOf('.');
+        if (lastIndex != -1) {
+            addNestedPropChain(propStr.substring(0, lastIndex), propList);
+        }
+    }
+
     /**
-     * Split expression into tokens ignoring quoted string
+     * Split expression into tokens including java identifiers and non java identifiers. Ignores quoted string
      */
     static List<String> splitExpression(String expression) {
         List<String> tokens = new ArrayList<>();
@@ -426,5 +479,13 @@ public class CanonicalCountBasedOrderingStrategy implements AlphaNodeOrderingStr
         String inbetweenText = expression.subSequence(lastStart, here).toString().trim();
         String[] inbetweenTokens = inbetweenText.split(" ");
         tokens.addAll(Arrays.asList(inbetweenTokens));
+    }
+
+    Map<AlphaNodeFieldConstraint, List<String>> getPrioritizedConstraints() {
+        return prioritizedConstraints;
+    }
+
+    List<ObjectType> getDenyReorderList() {
+        return denyReorderList;
     }
 }

@@ -1,6 +1,7 @@
 package org.drools.modelcompiler.util.lambdareplace;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.junit.Test;
 

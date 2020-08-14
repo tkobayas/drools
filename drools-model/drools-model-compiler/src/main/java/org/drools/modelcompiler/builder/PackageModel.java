@@ -147,6 +147,7 @@ public class PackageModel {
     private Set<RuleUnitDescription> ruleUnits = new HashSet<>();
 
     private Map<LambdaExpr, java.lang.reflect.Type> lambdaReturnTypes = new HashMap<>();
+    private Map<LambdaExpr, String> lambdaOriginalDrlConstraints = new HashMap<>();
 
     private boolean oneClassPerRule;
 
@@ -861,5 +862,10 @@ public class PackageModel {
 
     public Map<LambdaExpr, java.lang.reflect.Type> getLambdaReturnTypes() {
         return lambdaReturnTypes;
+    }
+
+    
+    public Map<LambdaExpr, String> getLambdaOriginalDrlConstraints() {
+        return lambdaOriginalDrlConstraints;
     }
 }

@@ -146,7 +146,12 @@ public abstract class AbstractExpressionBuilder {
     }
 
     protected Expression buildConstraintExpression(SingleDrlxParseSuccess drlxParseResult, Expression expr ) {
-        return buildConstraintExpression(drlxParseResult, drlxParseResult.getUsedDeclarations(), expr );
+        Expression newExpr = buildConstraintExpression(drlxParseResult, drlxParseResult.getUsedDeclarations(), expr );
+        if (newExpr instanceof LambdaExpr) {
+            context.getPackageModel().getLambdaOriginalDrlConstraints().put((LambdaExpr)newExpr, drlxParseResult.getOriginalDrlConstraint());
+        }
+        System.out.println(context.getPackageModel().getLambdaOriginalDrlConstraints());
+        return newExpr;
     }
 
     protected Expression buildConstraintExpression(SingleDrlxParseSuccess drlxParseResult, Collection<String> usedDeclarations, Expression expr ) {

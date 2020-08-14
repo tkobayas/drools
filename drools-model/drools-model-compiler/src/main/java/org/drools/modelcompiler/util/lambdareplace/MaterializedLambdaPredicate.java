@@ -17,10 +17,13 @@
 
 package org.drools.modelcompiler.util.lambdareplace;
 
+import java.util.Collection;
+
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
@@ -28,11 +31,14 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.PrimitiveType;
 
 import static com.github.javaparser.StaticJavaParser.parseClassOrInterfaceType;
-import static org.drools.modelcompiler.util.StringUtil.md5Hash;
 
 public class MaterializedLambdaPredicate extends MaterializedLambda {
 
-    private final static String CLASS_NAME_PREFIX = "LambdaPredicate";
+    public static final String ORIGINAL_DRL_CONSTRAINT = "ORIGINAL_DRL_CONSTRAINT";
+
+    private static final String CLASS_NAME_PREFIX = "LambdaPredicate";
+
+    private String originalDrlConstraint = null;
 
     MaterializedLambdaPredicate(String packageName, String ruleClassName) {
         super(packageName, ruleClassName);
@@ -45,6 +51,13 @@ public class MaterializedLambdaPredicate extends MaterializedLambda {
 
     @Override
     void createMethodDeclaration(EnumDeclaration classDeclaration) {
+        if (originalDrlConstraint != null) {
+            StringLiteralExpr stringLiteralExpr = new StringLiteralExpr();
+            stringLiteralExpr.setString(originalDrlConstraint);
+            classDeclaration.addFieldWithInitializer(String.class, ORIGINAL_DRL_CONSTRAINT, stringLiteralExpr,
+                                                     Modifier.Keyword.PUBLIC, Modifier.Keyword.STATIC, Modifier.Keyword.FINAL);
+        }
+
         MethodDeclaration methodDeclaration = classDeclaration.addMethod("test", Modifier.Keyword.PUBLIC);
         methodDeclaration.setThrownExceptions(NodeList.nodeList(parseClassOrInterfaceType("java.lang.Exception")));
         methodDeclaration.addAnnotation("Override");
@@ -60,5 +73,9 @@ public class MaterializedLambdaPredicate extends MaterializedLambda {
     protected ClassOrInterfaceType functionType() {
         String type = "Predicate" + lambdaParameters.size();
         return parseClassOrInterfaceType("org.drools.model.functions." + type);
+    }
+
+    public void setOriginalDrlConstraint(String originalDrlConstraint) {
+        this.originalDrlConstraint = originalDrlConstraint;
     }
 }

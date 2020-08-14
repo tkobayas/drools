@@ -39,6 +39,10 @@ import org.drools.core.util.index.IndexUtil;
 import org.drools.model.AlphaIndex;
 import org.drools.model.BetaIndex;
 import org.drools.model.Index;
+import org.drools.model.constraints.SingleConstraint1;
+import org.drools.model.functions.IntrospectableLambda;
+import org.drools.model.functions.Predicate1;
+import org.drools.modelcompiler.util.LambdaUtil;
 
 import static org.drools.core.reteoo.PropertySpecificUtil.getEmptyPropertyReactiveMask;
 import static org.drools.core.rule.constraint.MvelConstraint.INDEX_EVALUATOR;
@@ -264,5 +268,9 @@ public class LambdaConstraint extends AbstractConstraint {
     @Override
     public int hashCode() {
         return evaluator.hashCode();
+    }
+
+    public String getOriginalDrlConstraint() {
+        return LambdaUtil.getOriginalDrlConstraint(evaluator.constraint);
     }
 }
