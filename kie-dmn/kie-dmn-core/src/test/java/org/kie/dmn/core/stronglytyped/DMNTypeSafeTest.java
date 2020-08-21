@@ -99,14 +99,15 @@ public class DMNTypeSafeTest extends BaseVariantTest {
         FEELPropertyAccessible tPersonInstance = tPerson(compiledClasses, asList(street1, street2));
         FEELPropertyAccessible context = inputSet(compiledClasses, tPersonInstance);
 
-        DMNResult evaluateAll = evaluateTyped(context, runtime, dmnModel);
+        Class<?> outputSetClass = compiledClasses.get(packageName.appendPackage("OutputSet"));
+
+        DMNResult evaluateAll = evaluateTyped(context, runtime, dmnModel, outputSetClass);
 
         DMNContext result = evaluateAll.getContext();
         Map<String, Object> d = (Map<String, Object>) result.get("d");
         assertThat(d.get("Hello"), is("Hello Mr. x"));
 
-        FEELPropertyAccessible outputSet = createInstanceFromCompiledClasses(compiledClasses, packageName, "OutputSet");
-        outputSet.fromMap(result.getAll());
+        FEELPropertyAccessible outputSet = ((DMNContextFPAImpl)result).getFpa();
 
         assertThat(outputSet.getFEELProperty("p").toOptional().get(), equalTo(tPersonInstance));
         Map<String, Object> dContext = (Map<String, Object>)outputSet.getFEELProperty("d").toOptional().get();
@@ -159,14 +160,15 @@ public class DMNTypeSafeTest extends BaseVariantTest {
 
         context.fromMap(inputSetMap);
 
-        DMNResult evaluateAll = evaluateTyped(context, runtime, dmnModel);
+        Class<?> outputSetClass = classes.get(packageName.appendPackage("OutputSet"));
+
+        DMNResult evaluateAll = evaluateTyped(context, runtime, dmnModel, outputSetClass);
 
         DMNContext result = evaluateAll.getContext();
         Map<String, Object> d = (Map<String, Object>) result.get("d");
         assertThat(d.get("Hello"), is("Hello Mr. x"));
 
-        FEELPropertyAccessible outputSet = createInstanceFromCompiledClasses(classes, packageName, "OutputSet");
-        outputSet.fromMap(result.getAll());
+        FEELPropertyAccessible outputSet = ((DMNContextFPAImpl)result).getFpa();
 
         assertThat(outputSet.getFEELProperty("p").toOptional().get(), equalTo(context.getFEELProperty("p").toOptional().get()));
         Map<String, Object> dContext = (Map<String, Object>)outputSet.getFEELProperty("d").toOptional().get();
@@ -196,8 +198,10 @@ public class DMNTypeSafeTest extends BaseVariantTest {
         assertThat(DMNRuntimeUtil.formatMessages(dmnModel.getMessages()), dmnModel.hasErrors(), is(false));
     }
 
-    private static DMNResult evaluateTyped(FEELPropertyAccessible context, DMNRuntime runtime, DMNModel dmnModel) {
-        return runtime.evaluateAll(dmnModel, new DMNContextFPAImpl(context));
+    private static DMNResult evaluateTyped(FEELPropertyAccessible context, DMNRuntime runtime, DMNModel dmnModel, Class<?> outputSetClass) {
+        DMNContext contextFpa = new DMNContextFPAImpl(context);
+        contextFpa.getMetadata().set("OutputSetClass", outputSetClass);
+        return runtime.evaluateAll(dmnModel, contextFpa);
     }
 
     public static Map<String, Class<?>> generateSourceCodeAndCreateInput(DMNModel dmnModel, DMNTypeSafePackageName.ModelFactory packageName, ClassLoader classLoader) {

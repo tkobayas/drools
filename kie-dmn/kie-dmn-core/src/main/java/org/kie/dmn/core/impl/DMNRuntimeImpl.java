@@ -16,6 +16,7 @@
 
 package org.kie.dmn.core.impl;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import org.kie.dmn.api.core.DMNModel;
 import org.kie.dmn.api.core.DMNResult;
 import org.kie.dmn.api.core.DMNRuntime;
 import org.kie.dmn.api.core.DMNType;
+import org.kie.dmn.api.core.FEELPropertyAccessible;
 import org.kie.dmn.api.core.ast.BusinessKnowledgeModelNode;
 import org.kie.dmn.api.core.ast.DMNNode;
 import org.kie.dmn.api.core.ast.DecisionNode;
@@ -58,6 +60,7 @@ import org.kie.dmn.core.compiler.RuntimeTypeCheckOption;
 import org.kie.dmn.core.util.Msg;
 import org.kie.dmn.core.util.MsgUtil;
 import org.kie.dmn.feel.runtime.FEELFunction;
+import org.kie.dmn.typesafe.DMNTypeSafeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -248,7 +251,23 @@ public class DMNRuntimeImpl
     private DMNResultImpl createResultImpl(DMNModel model, DMNContext context) {
         DMNResultImpl result = new DMNResultImpl(model);
         if (context instanceof DMNContextFPAImpl) {
-            result.setContext(new DMNContextTypeSafeImpl(context.clone()));
+            // don't clone because result will have outputSet
+            Class<?> outputSetClass = (Class<?>)context.getMetadata().get("OutputSetClass");
+            if (outputSetClass == null) {
+                throw new DMNTypeSafeException("OutputSetClass is not found in DMNContextFPAImpl metadata");
+            }
+            if (!FEELPropertyAccessible.class.isAssignableFrom(outputSetClass)) {
+                throw new DMNTypeSafeException(outputSetClass + "is not FEELPropertyAccessible");
+            }
+            FEELPropertyAccessible outputSet;
+            try {
+                outputSet = (FEELPropertyAccessible) outputSetClass.getDeclaredConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+                    | NoSuchMethodException | SecurityException e) {
+                        throw new DMNTypeSafeException("Exception while instantiating " + outputSetClass, e);
+            }
+            outputSet.fromMap(context.getAll());
+            result.setContext(new DMNContextFPAImpl(outputSet, context.getMetadata().asMap()));
         } else {
             result.setContext(context.clone());
         }

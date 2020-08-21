@@ -232,7 +232,10 @@ public abstract class BaseVariantTest {
         try {
             inputSet = createInstanceFromCompiledClasses(allCompiledClasses, factory.create(dmnModel), "InputSet");
             inputSet.fromMap(inputMap);
-            return runtime.evaluateAll(dmnModel, new DMNContextFPAImpl(inputSet));
+            DMNContext contextFpa = new DMNContextFPAImpl(inputSet);
+            Class<?> outputSetClass = getStronglyClassByName(dmnModel, "OutputSet");
+            contextFpa.getMetadata().set("OutputSetClass", outputSetClass);
+            return runtime.evaluateAll(dmnModel, contextFpa);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -244,28 +247,13 @@ public abstract class BaseVariantTest {
         try {
             inputSet = createInstanceFromCompiledClasses(allCompiledClasses, factory.create(dmnModel), "InputSet");
             inputSet.fromMap(inputMap);
-            return runtime.evaluateDecisionService(dmnModel, new DMNContextFPAImpl(inputSet), decisionServiceName);
+            DMNContext contextFpa = new DMNContextFPAImpl(inputSet);
+            Class<?> outputSetClass = getStronglyClassByName(dmnModel, "OutputSet");
+            contextFpa.getMetadata().set("OutputSetClass", outputSetClass);
+            return runtime.evaluateDecisionService(dmnModel, contextFpa, decisionServiceName);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public FEELPropertyAccessible convertToOutputSet(DMNModel dmnModel, DMNResult dmnResult) {
-        Map<String, Object> contextMap = dmnResult.getContext().getAll();
-        FEELPropertyAccessible outputSet;
-        try {
-            outputSet = createInstanceFromCompiledClasses(allCompiledClasses, factory.create(dmnModel), "OutputSet");
-            outputSet.fromMap(contextMap);
-            return outputSet;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public Class<?> getOutputSetClass(DMNModel dmnModel) {
-        Class<?> outputSetClass = allCompiledClasses.get(factory.create(dmnModel).appendPackage("OutputSet"));
-        assertThat(outputSetClass, notNullValue());
-        return outputSetClass;
     }
 
     /**

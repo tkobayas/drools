@@ -27,6 +27,7 @@ public interface DMNTypeSafeTypeTemplate {
     java.util.Map.Map<String, Object> allFEELProperties() {
         java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("<PROPERTY_NAME>", this.getPropertyName());
+        result.values().removeIf(java.util.Objects::isNull);
         return result;
     }
 
