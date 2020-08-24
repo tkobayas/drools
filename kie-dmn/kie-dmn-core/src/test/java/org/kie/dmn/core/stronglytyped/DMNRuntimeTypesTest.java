@@ -640,17 +640,18 @@ public class DMNRuntimeTypesTest extends BaseVariantTest {
 
         final DMNResult dmnResult = evaluateModel(runtime, dmnModel, context);
         assertThat(dmnResult.hasErrors(), is(false));
-        Map<String, Object> outPerson = (Map<String, Object>)dmnResult.getContext().get("Decision-1");
-        assertThat(outPerson.get("name"), is("paul"));
-        assertThat(outPerson.get("Name"), is("Paul"));
 
         if (isTypeSafe()) {
-            FEELPropertyAccessible outputSet = convertToOutputSet(dmnModel, dmnResult);
+            FEELPropertyAccessible outputSet = ((DMNContextFPAImpl)dmnResult.getContext()).getFpa();
             Map<String, Object> allProperties = outputSet.allFEELProperties();
             FEELPropertyAccessible myPersonOut = (FEELPropertyAccessible) allProperties.get("Decision-1");
             assertThat(myPersonOut.getClass().getSimpleName(), is("TPerson"));
             assertThat(myPersonOut.getFEELProperty("name").toOptional().get(), is("paul"));
             assertThat(myPersonOut.getFEELProperty("Name").toOptional().get(), is("Paul"));
+        } else {
+            Map<String, Object> outPerson = (Map<String, Object>)dmnResult.getContext().get("Decision-1");
+            assertThat(outPerson.get("name"), is("paul"));
+            assertThat(outPerson.get("Name"), is("Paul"));
         }
     }
 
@@ -706,12 +707,8 @@ public class DMNRuntimeTypesTest extends BaseVariantTest {
         final DMNResult dmnResult = evaluateModel(runtime, dmnModel, context);
         assertThat(dmnResult.hasErrors(), is(false));
 
-        assertThat((List<?>) dmnResult.getContext().get("My Decision"),
-                contains(prototype(entry("Full Name", "Prof. John Doe"), entry("Age", EvalHelper.coerceNumber(33))),
-                         prototype(entry("Full Name", "Prof. 47"), entry("Age", EvalHelper.coerceNumber(47)))));
-
         if (isTypeSafe()) {
-            FEELPropertyAccessible outputSet = convertToOutputSet(dmnModel, dmnResult);
+            FEELPropertyAccessible outputSet = ((DMNContextFPAImpl)dmnResult.getContext()).getFpa();
             Map<String, Object> allProperties = outputSet.allFEELProperties();
             List<FEELPropertyAccessible> personList = (List<FEELPropertyAccessible>) allProperties.get("My Decision");
             FEELPropertyAccessible person1 = personList.get(0);
@@ -720,6 +717,10 @@ public class DMNRuntimeTypesTest extends BaseVariantTest {
             assertThat(person1.getFEELProperty("Age").toOptional().get(), anyOf(is(EvalHelper.coerceNumber(33)), is(EvalHelper.coerceNumber(47))));
             assertThat(person2.getFEELProperty("Full Name").toOptional().get(), anyOf(is("Prof. John Doe"),is("Prof. 47")));
             assertThat(person2.getFEELProperty("Age").toOptional().get(), anyOf(is(EvalHelper.coerceNumber(33)), is(EvalHelper.coerceNumber(47))));
+        } else {
+            assertThat((List<?>) dmnResult.getContext().get("My Decision"),
+            contains(prototype(entry("Full Name", "Prof. John Doe"), entry("Age", EvalHelper.coerceNumber(33))),
+                     prototype(entry("Full Name", "Prof. 47"), entry("Age", EvalHelper.coerceNumber(47)))));
         }
     }
 
@@ -742,12 +743,8 @@ public class DMNRuntimeTypesTest extends BaseVariantTest {
         final DMNResult dmnResult = evaluateModel(runtime, dmnModel, context);
         assertThat(dmnResult.hasErrors(), is(false));
 
-        assertThat((List<?>) dmnResult.getContext().get("Decision-1"),
-                contains(mapOf(entry("letter", "ABC"), entry("num", EvalHelper.coerceNumber(123))),
-                         mapOf(entry("letter", "DEF"), entry("num", EvalHelper.coerceNumber(456)))));
-
         if (isTypeSafe()) {
-            FEELPropertyAccessible outputSet = convertToOutputSet(dmnModel, dmnResult);
+            FEELPropertyAccessible outputSet = ((DMNContextFPAImpl)dmnResult.getContext()).getFpa();
             Map<String, Object> allProperties = outputSet.allFEELProperties();
             List<FEELPropertyAccessible> pairList = (List<FEELPropertyAccessible>) allProperties.get("Decision-1");
             FEELPropertyAccessible pair1 = pairList.get(0);
@@ -756,6 +753,10 @@ public class DMNRuntimeTypesTest extends BaseVariantTest {
             assertThat(pair1.getFEELProperty("num").toOptional().get(), anyOf(is(EvalHelper.coerceNumber(123)), is(EvalHelper.coerceNumber(456))));
             assertThat(pair2.getFEELProperty("letter").toOptional().get(), anyOf(is("ABC"),is("DEF")));
             assertThat(pair2.getFEELProperty("num").toOptional().get(), anyOf(is(EvalHelper.coerceNumber(123)), is(EvalHelper.coerceNumber(456))));
+        } else {
+            assertThat((List<?>) dmnResult.getContext().get("Decision-1"),
+            contains(mapOf(entry("letter", "ABC"), entry("num", EvalHelper.coerceNumber(123))),
+                     mapOf(entry("letter", "DEF"), entry("num", EvalHelper.coerceNumber(456)))));
         }
     }
 

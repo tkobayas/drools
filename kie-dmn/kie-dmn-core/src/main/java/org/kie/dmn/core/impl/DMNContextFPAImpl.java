@@ -60,16 +60,13 @@ public class DMNContextFPAImpl implements DMNContext {
     @Override
     public Object set(String name, Object value) {
         if (stack.isEmpty()) {
-            PropertyValueResult propValueResult = (PropertyValueResult)this.fpa.getFEELProperty(name);
+            PropertyValueResult propValueResult = (PropertyValueResult) this.fpa.getFEELProperty(name);
             if (propValueResult.isDefined()) {
                 if (!this.fpa.getFEELProperty(name).toOptional().isPresent()) {
-                    if (value instanceof Map<?, ?>) {
-                        Map<String, Object> compositeValue = new HashMap<>();
-                        compositeValue.put(name, value);
-                        fpa.fromMap(compositeValue);
-                    } else {
-                        this.fpa.setFEELProperty(name, value);
-                    }
+                    // fromMap can handle Map/Collection rather than setFEELProperty
+                    Map<String, Object> compositeValue = new HashMap<>();
+                    compositeValue.put(name, value);
+                    fpa.fromMap(compositeValue);
                 }
                 return this.fpa.getFEELProperty(name).toOptional().orElse(null);
             } else {
