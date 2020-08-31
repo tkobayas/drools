@@ -91,6 +91,11 @@ public class DMNContextFPAImpl implements DMNContext {
         }
     }
 
+    /**
+     * Internal utility method
+     * 
+     * @return FEELPropertyAccessible which represents strongly typed context
+     */
     public FEELPropertyAccessible getFpa() {
         return fpa;
     }
@@ -134,8 +139,6 @@ public class DMNContextFPAImpl implements DMNContext {
     public boolean isDefined(String name) {
         if (stack.isEmpty()) {
             // Cannot use propValueResult.isDefined() for fpa null field because it's defined=true
-            //PropertyValueResult propValueResult = (PropertyValueResult)this.fpa.getFEELProperty(name);
-            //return propValueResult.isDefined();
             return getCurrentEntries().get(name) != null;
         } else {
             return getCurrentEntries().containsKey(name);
