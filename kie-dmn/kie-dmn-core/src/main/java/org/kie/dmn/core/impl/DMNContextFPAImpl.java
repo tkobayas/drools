@@ -160,7 +160,7 @@ public class DMNContextFPAImpl implements DMNContext {
                     throw new DMNTypeSafeException("Exception while instantiating " + fpa.getClass(), e);
         }
         newFpa.fromMap(fpa.allFEELProperties());
-        DMNContextFPAImpl newCtx = new DMNContextFPAImpl(newFpa, metadata.asMap(), fallbackMap);
+        DMNContextFPAImpl newCtx = new DMNContextFPAImpl(newFpa, metadata.asMap(), fallbackMap.clone());
         for (ScopeReference e : stack) {
             newCtx.pushScope(e.getName(), e.getNamespace());
         }
