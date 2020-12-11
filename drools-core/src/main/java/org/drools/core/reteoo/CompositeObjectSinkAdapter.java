@@ -42,6 +42,7 @@ import org.drools.core.util.LinkedList;
 import org.drools.core.util.LinkedListNode;
 import org.drools.core.util.ObjectHashMap;
 import org.drools.core.util.ObjectHashMap.ObjectEntry;
+import org.drools.core.util.index.AlphaIntervalIndex;
 import org.drools.core.util.index.AlphaRangeIndex;
 import org.drools.core.util.index.IndexUtil.ConstraintType;
 
@@ -62,9 +63,11 @@ public class CompositeObjectSinkAdapter implements ObjectSinkPropagator {
 
     private LinkedList<FieldIndex>    hashedFieldIndexes;
     private LinkedList<FieldIndex>    rangeIndexedFieldIndexes;
+    private LinkedList<FieldIndex>    intervalIndexedFieldIndexes;
 
     private ObjectHashMap             hashedSinkMap;
     private Map<FieldIndex, AlphaRangeIndex>          rangeIndexMap;
+    private Map<FieldIndex, AlphaIntervalIndex>          intervalIndexMap;
 
     private int               alphaNodeHashingThreshold;
     private int               alphaNodeRangeIndexThreshold;
@@ -487,7 +490,7 @@ public class CompositeObjectSinkAdapter implements ObjectSinkPropagator {
         fieldIndex.setRangeIndexed(false);
     }
 
-    private boolean isRangeIndexable(AlphaNode alphaNode) {
+    public static boolean isRangeIndexable(AlphaNode alphaNode) {
         AlphaNodeFieldConstraint fieldConstraint = alphaNode.getConstraint();
         if (fieldConstraint instanceof IndexableConstraint) {
             IndexableConstraint indexableConstraint = (IndexableConstraint) fieldConstraint;
