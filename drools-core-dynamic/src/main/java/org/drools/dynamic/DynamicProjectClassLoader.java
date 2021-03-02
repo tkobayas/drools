@@ -32,6 +32,8 @@ public class DynamicProjectClassLoader extends ProjectClassLoader {
 
     private static boolean isIBM_JVM = System.getProperty("java.vendor").toLowerCase().contains("ibm");
 
+    private static final ClassNotFoundException dummyCFNE = new ClassNotFoundException("Dummy Exception to skip unnecessary classloading");
+
     protected DynamicProjectClassLoader(ClassLoader parent, ResourceProvider resourceProvider) {
         super(parent, resourceProvider);
     }
@@ -115,6 +117,13 @@ public class DynamicProjectClassLoader extends ProjectClassLoader {
         }
 
         public Class<?> loadType(String name, boolean resolve) throws ClassNotFoundException {
+            if (projectClassLoader.containsInStore(ClassUtils.convertClassToResourcePath(name))) {
+                Class<?> clazz = findLoadedClass(name);
+                if (clazz == null) {
+                    throw dummyCFNE; // skip parent classloader
+                }
+                return clazz;
+            }
             return super.loadClass(name, resolve);
         }
 
