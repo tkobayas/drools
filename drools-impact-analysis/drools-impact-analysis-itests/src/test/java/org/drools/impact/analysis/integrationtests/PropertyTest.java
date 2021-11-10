@@ -89,4 +89,62 @@ public class PropertyTest extends AbstractGraphTest {
 
         generatePng(graph);
     }
+
+    @Test
+    public void testBooleanTrue() {
+        String str =
+                "package mypkg;\n" +
+                     "import " + Person.class.getCanonicalName() + ";" +
+                     "rule R1 when\n" +
+                     "  $p : Person(age >= 20)\n" +
+                     "then\n" +
+                     "  modify ($p) {setEmployed(true)};" +
+                     "end\n" +
+                     "rule R2 when\n" +
+                     "  $p : Person(employed)\n" +
+                     "then\n" +
+                     "end\n";
+
+        Person person = new Person("John", 20);
+        person.setEmployed(true);
+        runRule(str, person);
+
+        AnalysisModel analysisModel = new ModelBuilder().build(str);
+
+        ModelToGraphConverter converter = new ModelToGraphConverter();
+        Graph graph = converter.toGraph(analysisModel);
+
+        assertLink(graph, "mypkg.R1", "mypkg.R2", ReactivityType.POSITIVE);
+
+        generatePng(graph);
+    }
+
+    @Test
+    public void testBooleanFalse() {
+        String str =
+                "package mypkg;\n" +
+                     "import " + Person.class.getCanonicalName() + ";" +
+                     "rule R1 when\n" +
+                     "  $p : Person(age >= 20)\n" +
+                     "then\n" +
+                     "  modify ($p) {setEmployed(false)};" +
+                     "end\n" +
+                     "rule R2 when\n" +
+                     "  $p : Person(!employed)\n" +
+                     "then\n" +
+                     "end\n";
+
+        Person person = new Person("John", 20);
+        person.setEmployed(false);
+        runRule(str, person);
+
+        AnalysisModel analysisModel = new ModelBuilder().build(str);
+
+        ModelToGraphConverter converter = new ModelToGraphConverter();
+        Graph graph = converter.toGraph(analysisModel);
+
+        assertLink(graph, "mypkg.R1", "mypkg.R2", ReactivityType.POSITIVE);
+
+        generatePng(graph);
+    }
 }

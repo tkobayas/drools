@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.UnaryExpr;
 import org.drools.compiler.compiler.PackageRegistry;
 import org.drools.compiler.lang.descr.BaseDescr;
 import org.drools.compiler.lang.descr.ConditionalElementDescr;
@@ -40,6 +41,7 @@ import org.drools.modelcompiler.builder.generator.drlxparse.ConstraintExpression
 import org.drools.modelcompiler.builder.generator.drlxparse.ConstraintParser;
 import org.drools.modelcompiler.builder.generator.drlxparse.DrlxParseResult;
 import org.drools.modelcompiler.builder.generator.drlxparse.SingleDrlxParseSuccess;
+import org.drools.modelcompiler.util.PatternUtil;
 
 import static org.drools.impact.analysis.parser.impl.ParserUtil.getLiteralString;
 import static org.drools.impact.analysis.parser.impl.ParserUtil.literalToValue;
@@ -75,6 +77,10 @@ public class LhsParser {
     }
 
     private Pattern parsePattern( RuleContext context, PatternDescr patternDescr, boolean positive ) {
+        if (context.getRuleUnitDescr() != null) {
+            System.out.println("context.getRuleUnitDescr() = " + context.getRuleUnitDescr());
+            patternDescr = PatternUtil.normalizeOOPathPattern(patternDescr, context);
+        }
         String type = patternDescr.getObjectType();
         Class<?> patternClass;
         try {
@@ -117,8 +123,35 @@ public class LhsParser {
                 }
             } else if (result.getExprBinding() != null && result.getExpr() != null && result.getExpr().isLiteralExpr()) {
                 ((ImpactAnalysisRuleContext)context).getBindVariableLiteralMap().put(result.getExprBinding(), ParserUtil.literalToValue(result.getExpr().asLiteralExpr()));
+            } else if (isPredicateMethodCall(result)) {
+                MethodCallExpr mce = result.getExpr().asMethodCallExpr();
+                addBooleanPropertyConstraint(pattern, mce, true);
+            } else if (isNegatedPredicateMethodCall(result)) {
+                UnaryExpr unaryExpr = result.getExpr().asUnaryExpr();
+                MethodCallExpr mce = unaryExpr.getExpression().asMethodCallExpr();
+                addBooleanPropertyConstraint(pattern, mce, false);
             }
         }
+    }
+
+    private void addBooleanPropertyConstraint(Pattern pattern, MethodCallExpr mce, boolean value) {
+        if (isThisExpression(mce.getScope().orElse(null))) {
+            String prop = ClassUtils.getter2property(mce.getName().asString());
+            if (prop != null) {
+                Constraint constraint = new Constraint(Constraint.Type.EQUAL, prop, value);
+                pattern.addConstraint(constraint);
+            }
+        }
+    }
+
+    private boolean isPredicateMethodCall(SingleDrlxParseSuccess result) {
+        return result.isPredicate() && result.getExpr() != null && result.getExpr().isMethodCallExpr();
+    }
+
+    private boolean isNegatedPredicateMethodCall(SingleDrlxParseSuccess result) {
+        return result.isPredicate() && result.getExpr() != null && result.getExpr().isUnaryExpr()
+                && result.getExpr().asUnaryExpr().getOperator().equals(UnaryExpr.Operator.LOGICAL_COMPLEMENT)
+                && result.getExpr().asUnaryExpr().getExpression().isMethodCallExpr();
     }
 
     private Constraint parseExpressionInConstraint( RuleContext context, Constraint constraint, TypedExpression expr ) {
