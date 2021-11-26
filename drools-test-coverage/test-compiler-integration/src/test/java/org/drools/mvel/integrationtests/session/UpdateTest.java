@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.drools.core.reteoo.ReteDumper;
 import org.drools.mvel.compiler.Address;
 import org.drools.mvel.compiler.Asset;
 import org.drools.mvel.compiler.AssetCard;
@@ -511,7 +512,8 @@ public class UpdateTest {
         verify(ael, never()).matchCancelled(any(org.kie.api.event.rule.MatchCancelledEvent.class));
     }
 
-    @Test(timeout = 10000)
+//    @Test(timeout = 10000)
+    @Test
     public void testSwapChild() {
         // DROOLS-6684
         final String str = "package org.drools.mvel.compiler;\n" +
@@ -558,6 +560,142 @@ public class UpdateTest {
         ksession.insert(p);
 
         assertEquals(1, ksession.fireAllRules());
+
+        //----------------------
+
+        AssetCard assetCard2 = new AssetCard(2);
+        assetCard2.setParent(asset);
+        assetCard2.setGroupCode("A");
+        asset.setAssetCard(assetCard2);
+
+        ksession.delete(assetCardFh);
+        ksession.insert(assetCard2);
+
+        assertEquals(1, ksession.fireAllRules());
+
+        ksession.dispose();
+    }
+
+    @Test
+    public void testSwapChildWithFrom() {
+        // DROOLS-6684
+        final String str = "package org.drools.mvel.compiler;\n" +
+                           "import " + Person.class.getCanonicalName() + "\n" +
+                           "import " + Asset.class.getCanonicalName() + "\n" +
+                           "import " + AssetCard.class.getCanonicalName() + "\n" +
+                           "\n" +
+                           "rule R1\n" +
+                           "    no-loop\n" +
+                           "when\n" +
+                           "    $p : Person(name == \"Mario\") @watch(age)\n" +
+                           "    $as : Asset()\n" +
+                           "    $ac : AssetCard(groupCode != \"A\") from $as.assetCard\n" +
+                           "then\n" +
+                           "    System.out.println(\"Rule \" + drools.getRule().getName() + \"; \" + $ac);\n" +
+                           "    modify($p){setAge(10)}\n" +
+                           "end\n" +
+                           "\n" +
+                           "rule R2\n" +
+                           "    no-loop\n" +
+                           "when\n" +
+                           "    $p : Person(name == \"Mario\") @watch(age)\n" +
+                           "    $as : Asset()\n" +
+                           "    $ac : AssetCard(groupCode == \"A\") from $as.assetCard\n" +
+                           "then\n" +
+                           "    System.out.println(\"Rule \" + drools.getRule().getName() + \"; \" + $ac);\n" +
+                           "    modify($p){setAge(10)}\n" +
+                           "end";
+
+        KieBase kbase = KieBaseUtil.getKieBaseFromKieModuleFromDrl("test", kieBaseTestConfiguration, str);
+        KieSession ksession = kbase.newKieSession();
+        
+        ReteDumper.dumpRete(kbase);
+
+        Asset asset = new Asset();
+
+        AssetCard assetCard = new AssetCard(1);
+        assetCard.setParent(asset);
+        assetCard.setGroupCode("A");
+        asset.setAssetCard(assetCard);
+
+        Person p = new Person("Mario", 20);
+
+        FactHandle assetFh = ksession.insert(asset);
+        ksession.insert(p);
+        
+        System.out.println("-- 1st run");
+        assertEquals(1, ksession.fireAllRules());
+        
+        // NOTE: PhreakFromNode.doLeftInserts() calls leftTuple.clearStaged() so stagedType becomes 0 regardless of constraint match (groupCode != "A").
+        //         -> During the re-evaluation, PhreakJoinNode.updateChildLeftTuple() will not make the FromNodeLeftTuple INSERT (it will be UPDATE).
+
+        //----------------------
+
+        AssetCard assetCard2 = new AssetCard(2);
+        assetCard2.setParent(asset);
+        assetCard2.setGroupCode("A");
+        asset.setAssetCard(assetCard2);
+
+        ksession.update(assetFh, asset);
+
+
+        System.out.println("-- 2nd run");
+        assertEquals(1, ksession.fireAllRules());
+
+        ksession.dispose();
+    }
+
+    @Test
+    public void testSwapChildWithAccumulate() {
+        // DROOLS-6684
+        final String str = "package org.drools.mvel.compiler;\n" +
+                           "import " + Person.class.getCanonicalName() + "\n" +
+                           "import " + Asset.class.getCanonicalName() + "\n" +
+                           "import " + AssetCard.class.getCanonicalName() + "\n" +
+                           "\n" +
+                           "rule R1\n" +
+                           "    no-loop\n" +
+                           "when\n" +
+                           "    $p : Person(name == \"Mario\") @watch(age)\n" +
+                           "    $as : Asset()\n" +
+                           "    accumulate (AssetCard(parent == $as, $code : groupCode != \"A\"); $count : count($code)) \n" +
+                           "    eval($count > 0) \n" +
+                           "then\n" +
+                           "    System.out.println(\"Rule \" + drools.getRule().getName() + \"; \" + $count);\n" +
+                           "    modify($p){setAge(10)}\n" +
+                           "end\n" +
+                           "\n" +
+                           "rule R2\n" +
+                           "    no-loop\n" +
+                           "when\n" +
+                           "    $p : Person(name == \"Mario\") @watch(age)\n" +
+                           "    $as : Asset()\n" +
+                           "    accumulate (AssetCard(parent == $as, $code : groupCode == \"A\"); $count : count($code)) \n" +
+                           "then\n" +
+                           "    System.out.println(\"Rule \" + drools.getRule().getName() + \"; \" + $count);\n" +
+                           "    modify($p){setAge(10)}\n" +
+                           "end";
+
+        KieBase kbase = KieBaseUtil.getKieBaseFromKieModuleFromDrl("test", kieBaseTestConfiguration, str);
+        KieSession ksession = kbase.newKieSession();
+
+        Asset asset = new Asset();
+
+        AssetCard assetCard = new AssetCard(1);
+        assetCard.setParent(asset);
+        assetCard.setGroupCode("A");
+        asset.setAssetCard(assetCard);
+
+        Person p = new Person("Mario", 20);
+
+        ksession.insert(asset);
+        FactHandle assetCardFh = ksession.insert(assetCard);
+        ksession.insert(p);
+
+        assertEquals(1, ksession.fireAllRules());
+
+        // NOTE: PhreakAccumulateNode.doNode() calls leftTuple.clearStaged() so stagedType becomes 0 regardless of accumulate pattern constraint match (groupCode != "A").
+        //         -> During the re-evaluation, PhreakJoinNode.updateChildLeftTuple() will not make the FromNodeLeftTuple INSERT (it will be UPDATE).
 
         //----------------------
 
