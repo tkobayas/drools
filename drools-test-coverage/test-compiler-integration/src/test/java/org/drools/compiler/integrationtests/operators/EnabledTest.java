@@ -55,7 +55,7 @@ public class EnabledTest {
 
     @Parameterized.Parameters(name = "KieBase type={0}")
     public static Collection<Object[]> getParameters() {
-        return TestParametersUtil.getKieBaseCloudConfigurations(false);
+        return TestParametersUtil.getKieBaseCloudConfigurations(true);
     }
 
     @Test
@@ -66,7 +66,7 @@ public class EnabledTest {
                 "global java.util.List results;\n" +
                 "\n" +
                 "rule \"Test enabled expression 1\"\n" +
-                "    @ruleID(1234)\n" +
+                "    @ruleID(\"1234\")\n" +
                 "    // arbitrary expression using a rule metadata\n" +
                 "    enabled ( rule.metaData[\"ruleID\"] == \"1234\" )\n" +
                 "  when\n" +

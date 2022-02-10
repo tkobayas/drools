@@ -30,15 +30,18 @@ import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.AssignExpr;
+import com.github.javaparser.ast.expr.CastExpr;
 import com.github.javaparser.ast.expr.ClassExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.NullLiteralExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.VariableDeclarationExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.type.PrimitiveType;
 import com.github.javaparser.ast.type.Type;
 import org.drools.compiler.builder.impl.KnowledgeBuilderImpl;
 import org.drools.compiler.lang.descr.AndDescr;
@@ -58,6 +61,7 @@ import org.drools.core.time.TimeUtils;
 import org.drools.model.Rule;
 import org.drools.model.UnitData;
 import org.drools.model.Variable;
+import org.drools.modelcompiler.attributes.DynamicAttributeEvaluator;
 import org.drools.modelcompiler.builder.PackageModel;
 import org.drools.modelcompiler.builder.errors.InvalidExpressionErrorResult;
 import org.drools.modelcompiler.builder.errors.ParseExpressionErrorResult;
@@ -327,8 +331,12 @@ public class ModelGenerator {
     private static void addDynamicAttributeArgument( RuleContext context, MethodCallExpr attributeCall, String value, Class<?> requiredAttributeType ) {
         ExpressionTyperContext expressionTyperContext = new ExpressionTyperContext();
         ExpressionTyper expressionTyper = new ExpressionTyper(context, Integer.class, null, false, expressionTyperContext);
-        Expression salienceExpr = parseExpression( value );
-        Optional<TypedExpression> typedExpression = expressionTyper.toTypedExpression(salienceExpr).getTypedExpression();
+        Expression attributeExpr = parseExpression( value );
+        boolean rulevaribleExists = replaceRuleVariableIfExists(attributeExpr);
+        if (rulevaribleExists) {
+            context.addDeclaration(DynamicAttributeEvaluator.RULE_ATTR_SCOPE, RuleImpl.class);
+        }
+        Optional<TypedExpression> typedExpression = expressionTyper.toTypedExpression(attributeExpr).getTypedExpression();
         if (typedExpression.isPresent()) {
             Expression expr = typedExpression.get().getExpression();
             java.lang.reflect.Type exprType = typedExpression.get().getType();
@@ -337,6 +345,8 @@ public class ModelGenerator {
                     expr = new MethodCallExpr("org.drools.modelcompiler.util.EvaluationUtil.string2Int", expr);
                 } else if (exprType == long.class || exprType == Long.class) {
                     expr = new MethodCallExpr(expr, "intValue");
+                } else if (exprType == Object.class) {
+                    expr = new CastExpr(PrimitiveType.intType(), expr);
                 }
             }
 
@@ -348,7 +358,17 @@ public class ModelGenerator {
             supplyCall.addArgument( lambda );
             attributeCall.addArgument( supplyCall );
         } else {
-            context.addCompilationError( new ParseExpressionErrorResult(salienceExpr) );
+            context.addCompilationError( new ParseExpressionErrorResult(attributeExpr) );
+        }
+    }
+
+    private static boolean replaceRuleVariableIfExists(Expression attributeExpr) {
+        List<NameExpr> ruleVariables = attributeExpr.findAll(NameExpr.class, expr -> expr.getNameAsString().equals("rule"));
+        if (ruleVariables.isEmpty()) {
+            return false;
+        } else {
+            ruleVariables.forEach(nameExpr -> nameExpr.setName(DynamicAttributeEvaluator.RULE_ATTR_SCOPE));
+            return true;
         }
     }
 

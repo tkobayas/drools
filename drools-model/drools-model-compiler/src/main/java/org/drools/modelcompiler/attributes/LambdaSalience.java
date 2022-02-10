@@ -34,7 +34,7 @@ public class LambdaSalience extends DynamicAttributeEvaluator<Integer> implement
     @Override
     public int getValue( KnowledgeHelper khelper, Rule rule, WorkingMemory workingMemory ) {
         Tuple tuple = khelper.getMatch().getTuple();
-        Object[] facts = declarationsToFacts( workingMemory, tuple, getDeclarations(tuple), supplier.getVariables() );
+        Object[] facts = declarationsToFacts( workingMemory, tuple, getDeclarations(tuple, supplier.getVariables()), supplier.getVariables() );
         return supplier.supply( facts );
     }
 

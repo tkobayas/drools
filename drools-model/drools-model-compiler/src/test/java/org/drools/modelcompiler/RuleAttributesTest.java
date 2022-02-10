@@ -117,6 +117,39 @@ public class RuleAttributesTest extends BaseModelTest {
     }
 
     @Test
+    public void testSalienceWithMetaData() throws Exception {
+        String str = "import " + Person.class.getCanonicalName() + ";" +
+                     "\n" +
+                     "rule R1\n" +
+                     "@ruleID(100)\n" +
+                     "salience (rule.metaData[\"ruleID\"])\n" +
+                     "when\n" +
+                     "  $p : Person( age == 40 )\n" +
+                     "then\n" +
+                     "   insert(\"R1\");\n" +
+                     "   delete($p);" +
+                     "end\n" +
+                     "rule R2\n" +
+                     "@ruleID(500)\n" +
+                     "salience (rule.metaData[\"ruleID\"])\n" +
+                     "when\n" +
+                     "  $p : Person( name.length == 5 )\n" +
+                     "then\n" +
+                     "   insert(\"R2\");\n" +
+                     "   delete($p);" +
+                     "end\n";
+
+        KieSession ksession = getKieSession(str);
+
+        ksession.insert(new Person("Mario", 40));
+        ksession.fireAllRules();
+
+        Collection<String> results = getObjectsIntoList(ksession, String.class);
+        assertEquals(1, results.size());
+        assertTrue(results.contains("R2"));
+    }
+
+    @Test
     public void testExpressionEnabledAttribute() throws Exception {
         String str = "import " + Person.class.getCanonicalName() + ";\n" +
                      "rule R1\n" +
@@ -140,6 +173,24 @@ public class RuleAttributesTest extends BaseModelTest {
         assertEquals(2, results.size());
         assertTrue(results.contains(mario));
         assertTrue(!results.contains("R1"));
+    }
+
+    @Test
+    public void testEnabledWithMetaData() throws Exception {
+        String str = "import " + Person.class.getCanonicalName() + ";\n" +
+                     "rule R1\n" +
+                     "@ruleID(\"1234\")\n" +
+                     "enabled (rule.metaData[\"ruleID\"] == \"1234\")\n" +
+                     "when\n" +
+                     "  $p : Person( )\n" +
+                     "then\n" +
+                     "end\n";
+
+        KieSession ksession = getKieSession(str);
+
+        Person mario = new Person("Mario", 40);
+        ksession.insert(mario);
+        assertEquals(1, ksession.fireAllRules());
     }
 
     @Test
