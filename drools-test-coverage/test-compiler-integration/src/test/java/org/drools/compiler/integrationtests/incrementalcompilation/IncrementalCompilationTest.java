@@ -4954,4 +4954,83 @@ public class IncrementalCompilationTest {
                 "   Thread.sleep(200);\n" +
                 "end\n";
     }
+
+    @Test
+    public void testAddEntryPoint() {
+        // DROOLS-6906
+        final KieServices ks = KieServices.Factory.get();
+
+        final ReleaseId releaseId1 = ks.newReleaseId("org.kie", "test-upgrade", "1.0.0");
+        KieUtil.getKieModuleFromDrls(releaseId1, kieBaseTestConfiguration, getRule("a"));
+
+        final KieContainer kc = ks.newKieContainer(releaseId1);
+        KieSession ksession = kc.newKieSession();
+
+        int objectNr = 2;
+        for (int i = 0; i < objectNr; i++) {
+            ksession.getEntryPoint("a").insert("test" + i);
+        }
+        ksession.fireAllRules();
+
+        assertEquals(objectNr, ksession.getEntryPoint("a").getObjects().size());
+
+        final ReleaseId releaseId2 = ks.newReleaseId("org.kie", "test-upgrade", "1.1.0");
+        KieUtil.getKieModuleFromDrls(releaseId2, kieBaseTestConfiguration, getRule("a", "b"));
+
+        kc.updateToVersion(releaseId2);
+
+        assertEquals(objectNr, ksession.getEntryPoint("a").getObjects().size());
+    }
+
+    private static String getRule(String... entryPoints) {
+        StringBuilder rules = new StringBuilder();
+        rules.append("package com.sample\n");
+        for (int i = 0; i < entryPoints.length; i++) {
+            rules.append("rule \"R" + i + "\"\n" +
+                    "when\n" +
+                    "    e : String() from entry-point \"" + entryPoints[i] + "\"\n" +
+                    "then\n" +
+                    "    System.out.print(\"Test Output\");\n" +
+                    "end\n");
+        }
+        return rules.toString();
+    }
+
+    @Test
+    public void testRemoveSharedConstraintWithEval() throws Exception {
+        // DROOLS-6960
+        final String drl1 =
+                "rule R1 when\n" +
+                "  String( eval(length == 4) )\n" +
+                "then\n" +
+                "end\n" +
+                "rule R2 when\n" +
+                "  String( eval(length == 4) )\n" +
+                "then\n" +
+                "end\n";
+
+        final String drl2 =
+                "rule R2 when\n" +
+                "  String( eval(length == 4) )\n" +
+                "then\n" +
+                "end\n";
+
+        final KieServices ks = KieServices.Factory.get();
+
+        final ReleaseId releaseId1 = ks.newReleaseId("org.kie", "test-upgrade", "1.0.0");
+        KieUtil.getKieModuleFromDrls(releaseId1, kieBaseTestConfiguration, drl1);
+
+        final KieContainer kc = ks.newKieContainer(releaseId1);
+        KieSession ksession = kc.newKieSession();
+
+        assertEquals(0, ksession.fireAllRules());
+
+        final ReleaseId releaseId2 = ks.newReleaseId("org.kie", "test-upgrade", "1.1.0");
+        KieUtil.getKieModuleFromDrls(releaseId2, kieBaseTestConfiguration, drl2);
+
+        kc.updateToVersion(releaseId2);
+
+        ksession.insert("test");
+        assertEquals(1, ksession.fireAllRules());
+    }
 }
