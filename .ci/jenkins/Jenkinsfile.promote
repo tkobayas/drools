@@ -56,7 +56,7 @@ pipeline {
                         echo "buildBranchValue ${buildBranchValue}"
                         echo "releaseBranchValue ${releaseBranchValue}"
                         assert getProjectVersion()
-                        assert getBuildBranch() == util.getReleaseBranchFromVersion(getProjectVersion())
+                        //assert getBuildBranch() == util.getReleaseBranchFromVersion(getProjectVersion())
                     }
                 }
             }
