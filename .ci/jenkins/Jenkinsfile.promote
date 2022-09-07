@@ -47,9 +47,11 @@ pipeline {
 
                     if (isRelease()) {
                         // Verify version is set and if on right release branch
+                        gitTagValue = getGitTag()
                         projectVersionValue = getProjectVersion()
                         buildBranchValue = getBuildBranch()
                         releaseBranchValue = util.getReleaseBranchFromVersion(getProjectVersion())
+                        echo "gitTagValue ${gitTagValue}"
                         echo "projectVersionValue ${projectVersionValue}"
                         echo "buildBranchValue ${buildBranchValue}"
                         echo "releaseBranchValue ${releaseBranchValue}"
@@ -230,7 +232,7 @@ String getSnapshotBranch() {
 
 void checkoutRepo() {
     deleteDir()
-    checkout(githubscm.resolveRepository(getRepoName(), getGitAuthor(), getGitTag(), false))
+    checkout(githubscm.resolveRepository(getRepoName(), getGitAuthor(), getBuildBranch(), false))
     // need to manually checkout branch since on a detached branch after checkout command
     sh "git checkout ${getBuildBranch()}"
 }
