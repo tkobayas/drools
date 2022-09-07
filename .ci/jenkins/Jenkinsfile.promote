@@ -286,7 +286,7 @@ void runMavenDeploy() {
 }
 
 void uploadFileMgmt(String directory) {
-    if (isNotTestingBuild()) {
+    //if (isNotTestingBuild()) {
         echo "upload binaries and docs for ${directory}"
         dir(directory) {
             withCredentials(bindings: [sshUserPrivateKey(credentialsId: 'drools-filemgmt',
@@ -294,9 +294,9 @@ void uploadFileMgmt(String directory) {
                 sh "script/release/upload_filemgmt.sh ${getProjectVersion()} $SSH_KEY_JBOSS_FILEMGMT"
             }
         }
-    } else {
-        echo 'No uploadFileMgmt due to testing build'
-    }
+    //} else {
+    //    echo 'No uploadFileMgmt due to testing build'
+    //}
 }
 
 boolean isNotTestingBuild() {
