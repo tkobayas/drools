@@ -47,10 +47,14 @@ pipeline {
 
                     if (isRelease()) {
                         // Verify version is set and if on right release branch
+                        repoNameValue = getRepoName()
+                        gitAuthorValue = getGitAuthor()
                         gitTagValue = getGitTag()
                         projectVersionValue = getProjectVersion()
                         buildBranchValue = getBuildBranch()
                         releaseBranchValue = util.getReleaseBranchFromVersion(getProjectVersion())
+                        echo "repoNameValue ${repoNameValue}"
+                        echo "gitAuthorValue ${gitAuthorValue}"
                         echo "gitTagValue ${gitTagValue}"
                         echo "projectVersionValue ${projectVersionValue}"
                         echo "buildBranchValue ${buildBranchValue}"
