@@ -2,6 +2,7 @@ package org.drools.reliability.test;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.conf.PersistedSessionOption;
 import org.kie.api.runtime.rule.FactHandle;
 import org.test.domain.fireandalarm.Alarm;
@@ -48,6 +49,7 @@ public class ReliabilityFireAndAlarmTest extends ReliabilityTestBasics{
     @ParameterizedTest
     @MethodSource("strategyProviderStoresOnlyWithExplicitSafepoints")
     void testNoFailover(PersistedSessionOption.PersistenceStrategy persistenceStrategy, PersistedSessionOption.SafepointStrategy safepointStrategy){
+        System.out.println("## testNoFailover: " + persistenceStrategy + " " + safepointStrategy);
         createSession(FIRE_AND_ALARM, persistenceStrategy, safepointStrategy);
 
         // phase 1
@@ -71,6 +73,7 @@ public class ReliabilityFireAndAlarmTest extends ReliabilityTestBasics{
     @ParameterizedTest
     @MethodSource("strategyProviderStoresOnlyWithExplicitSafepoints")
     void testInsertFailover_ShouldFireRules(PersistedSessionOption.PersistenceStrategy persistenceStrategy, PersistedSessionOption.SafepointStrategy safepointStrategy){
+        System.out.println("## testInsertFailover_ShouldFireRules: " + persistenceStrategy + " " + safepointStrategy);
         createSession(FIRE_AND_ALARM, persistenceStrategy, safepointStrategy);
 
         Room room1 = new Room("Room 1");

@@ -144,6 +144,7 @@ public abstract class ReliabilityTestBasics {
 
     @AfterEach
     public void tearDown() {
+        System.out.println("  ## tearDown");
         if (((TestableStorageManager) StorageManagerFactory.get().getStorageManager()).isRemote()) {
             StorageManagerFactory.get().getStorageManager().removeAllSessionStorages();
             StorageManagerFactory.get().getStorageManager().close(); // close remoteCacheManager
@@ -153,9 +154,11 @@ public abstract class ReliabilityTestBasics {
             ((TestableStorageManager) StorageManagerFactory.get().getStorageManager()).restartWithCleanUp();
         }
         ReliableRuntimeComponentFactoryImpl.resetCounter();
+        System.out.println("  ## tearDown done");
     }
 
     public void failover() {
+        System.out.println("  ## failover");
         if (safepointStrategy == PersistedSessionOption.SafepointStrategy.EXPLICIT) {
             this.sessions.stream().map(ReliableKieSession.class::cast).forEach(ReliableKieSession::safepoint);
         }
@@ -173,6 +176,7 @@ public abstract class ReliabilityTestBasics {
             ((TestableStorageManager) StorageManagerFactory.get().getStorageManager()).restart(); // restart embedded infinispan cacheManager. GlobalState and FireStore are kept
         }
         ReliableRuntimeComponentFactoryImpl.refreshCounterUsingStorage();
+        System.out.println("  ## failover done");
     }
 
     protected FactHandle insert(Object obj) {

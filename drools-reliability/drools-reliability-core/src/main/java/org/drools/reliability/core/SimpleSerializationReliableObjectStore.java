@@ -49,7 +49,9 @@ public class SimpleSerializationReliableObjectStore extends IdentityObjectStore 
         Storage<Long, StoredObject> updateStorage = storage;
 
         for (Long key: storage.keySet()){
-            updateStorage.put(key, ((SerializableStoredObject) storage.get(key)).updateReferencedObjects(storage));
+            if (storage.get(key) instanceof SerializableStoredObject) {
+                updateStorage.put(key, ((SerializableStoredObject) storage.get(key)).updateReferencedObjects(storage));
+            }
         }
 
         return updateStorage;
