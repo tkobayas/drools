@@ -35,6 +35,7 @@ import org.drools.core.WorkingMemoryEntryPoint;
 import org.drools.core.base.ArrayElements;
 import org.drools.core.base.DroolsQuery;
 import org.drools.core.factmodel.traits.TraitTypeEnum;
+import org.drools.core.reteoo.BaseLeftTuple;
 import org.drools.core.reteoo.LeftTuple;
 import org.drools.core.reteoo.RightTuple;
 import org.drools.core.rule.EntryPointId;
@@ -142,7 +143,7 @@ public class DisconnectedFactHandle
             throw new IllegalArgumentException( "externalFormat did not have enough elements ["+externalFormat+"]" );
         }
 
-        this.id = Integer.parseInt( elements[1] );
+        this.id = Long.parseLong( elements[1] );
         this.identityHashCode = Integer.parseInt( elements[2] );
         this.objectHashCode = Integer.parseInt(elements[3]);
         this.recency = Long.parseLong( elements[4] );
@@ -178,7 +179,7 @@ public class DisconnectedFactHandle
     public void forEachRightTuple( Consumer<RightTuple> rightTupleConsumer ) { }
 
     @Override
-    public void forEachLeftTuple( Consumer<LeftTuple> leftTupleConsumer ) { }
+    public void forEachLeftTuple( Consumer<BaseLeftTuple> leftTupleConsumer ) { }
 
     @Override
     public RightTuple findFirstRightTuple( Predicate<RightTuple> rightTuplePredicate ) {
@@ -186,7 +187,7 @@ public class DisconnectedFactHandle
     }
 
     @Override
-    public LeftTuple findFirstLeftTuple( Predicate<LeftTuple> lefttTuplePredicate ) {
+    public BaseLeftTuple findFirstLeftTuple( Predicate<BaseLeftTuple> lefttTuplePredicate ) {
         return null;
     }
 

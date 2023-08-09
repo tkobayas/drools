@@ -26,6 +26,7 @@ import org.drools.core.common.EqualityKey;
 import org.drools.core.common.InternalFactHandle;
 import org.drools.core.common.InternalWorkingMemory;
 import org.drools.core.factmodel.traits.TraitTypeEnum;
+import org.drools.core.reteoo.BaseLeftTuple;
 import org.drools.core.reteoo.LeftTuple;
 import org.drools.core.reteoo.ObjectTypeConf;
 import org.drools.core.reteoo.RightTuple;
@@ -300,7 +301,7 @@ public class DataSourceFactHandle implements InternalFactHandle {
     }
 
     @Override
-    public void forEachLeftTuple( Consumer<LeftTuple> leftTupleConsumer ) {
+    public void forEachLeftTuple( Consumer<BaseLeftTuple> leftTupleConsumer ) {
         throw new UnsupportedOperationException( "org.drools.core.datasources.CursoredDataSource.DataSourceFactHandle.forEachLeftTuple -> TODO" );
 
     }
@@ -312,7 +313,7 @@ public class DataSourceFactHandle implements InternalFactHandle {
     }
 
     @Override
-    public LeftTuple findFirstLeftTuple( Predicate<LeftTuple> lefttTuplePredicate ) {
+    public BaseLeftTuple findFirstLeftTuple( Predicate<BaseLeftTuple> lefttTuplePredicate ) {
         throw new UnsupportedOperationException( "org.drools.core.datasources.CursoredDataSource.DataSourceFactHandle.findFirstLeftTuple -> TODO" );
 
     }

@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 
 import org.drools.core.WorkingMemoryEntryPoint;
 import org.drools.core.factmodel.traits.TraitTypeEnum;
+import org.drools.core.reteoo.BaseLeftTuple;
 import org.drools.core.reteoo.LeftTuple;
 import org.drools.core.reteoo.RightTuple;
 import org.drools.core.rule.EntryPointId;
@@ -121,10 +122,10 @@ public interface InternalFactHandle
     boolean isPendingRemoveFromStore();
 
     void forEachRightTuple(Consumer<RightTuple> rightTupleConsumer );
-    void forEachLeftTuple(Consumer<LeftTuple> leftTupleConsumer);
+    void forEachLeftTuple(Consumer<BaseLeftTuple> leftTupleConsumer);
 
     RightTuple findFirstRightTuple(Predicate<RightTuple> rightTuplePredicate );
-    LeftTuple findFirstLeftTuple(Predicate<LeftTuple> lefttTuplePredicate );
+    BaseLeftTuple findFirstLeftTuple(Predicate<BaseLeftTuple> lefttTuplePredicate );
 
     void setFirstLeftTuple( LeftTuple firstLeftTuple );
 
@@ -155,10 +156,10 @@ public interface InternalFactHandle
         void forEachRightTuple(Consumer<RightTuple> rightTupleConsumer);
         RightTuple findFirstRightTuple(Predicate<RightTuple> rightTuplePredicate );
 
-        void forEachLeftTuple(Consumer<LeftTuple> leftTupleConsumer);
-        LeftTuple findFirstLeftTuple(Predicate<LeftTuple> leftTuplePredicate );
+        void forEachLeftTuple(Consumer<BaseLeftTuple> leftTupleConsumer);
+        BaseLeftTuple findFirstLeftTuple(Predicate<BaseLeftTuple> leftTuplePredicate );
 
-        LeftTuple getFirstLeftTuple( int partition);
+        BaseLeftTuple getFirstLeftTuple( int partition);
         void setFirstLeftTuple( LeftTuple firstLeftTuple, int partition );
 
         default LeftTuple getFirstLeftTuple(RuleBasePartitionId partitionId) {
@@ -397,7 +398,7 @@ public interface InternalFactHandle
         }
 
         @Override
-        public void forEachLeftTuple( Consumer<LeftTuple> leftTupleConsumer ) {
+        public void forEachLeftTuple( Consumer<BaseLeftTuple> leftTupleConsumer ) {
             throw new UnsupportedOperationException();
         }
 
@@ -407,7 +408,7 @@ public interface InternalFactHandle
         }
 
         @Override
-        public LeftTuple findFirstLeftTuple( Predicate<LeftTuple> lefttTuplePredicate ) {
+        public BaseLeftTuple findFirstLeftTuple( Predicate<BaseLeftTuple> lefttTuplePredicate ) {
             throw new UnsupportedOperationException();
         }
 
