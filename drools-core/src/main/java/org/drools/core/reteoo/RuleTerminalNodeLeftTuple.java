@@ -326,7 +326,7 @@ public class RuleTerminalNodeLeftTuple<T extends ModedAssertion<T>> extends Left
     }
 
     public TerminalNode getTerminalNode() {
-        return (TerminalNode) getTupleSink();
+        return (AbstractTerminalNode) getTupleSink();
     }
 
     public List<FactHandle> getFactHandles() {
