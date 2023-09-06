@@ -31,6 +31,7 @@ import org.drools.core.impl.InternalKnowledgeBase;
 import org.drools.core.reteoo.LeftTuple;
 import org.drools.core.reteoo.ObjectTypeNode;
 import org.drools.core.reteoo.RightTuple;
+import org.drools.core.reteoo.RightTupleImpl;
 import org.drools.core.rule.EntryPointId;
 import org.drools.core.spi.Tuple;
 import org.drools.core.util.AbstractBaseLinkedListNode;
@@ -62,7 +63,7 @@ public class DefaultFactHandle extends AbstractBaseLinkedListNode<DefaultFactHan
     private int                       objectHashCode;
     protected int                     identityHashCode;
 
-    protected EntryPointId            entryPointId;
+    protected EntryPointId entryPointId;
 
     private boolean                   disconnected;
 
@@ -680,8 +681,8 @@ public class DefaultFactHandle extends AbstractBaseLinkedListNode<DefaultFactHan
         }
 
         public void removeRightTuple( RightTuple rightTuple ) {
-            RightTuple previous = rightTuple.getHandlePrevious();
-            RightTuple next = rightTuple.getHandleNext();
+            RightTupleImpl previous = rightTuple.getHandlePrevious();
+            RightTupleImpl next = rightTuple.getHandleNext();
 
             if ( previous != null && next != null ) {
                 // remove  from middle
@@ -715,8 +716,8 @@ public class DefaultFactHandle extends AbstractBaseLinkedListNode<DefaultFactHan
         }
 
         public void forEachRightTuple(Consumer<RightTuple> rightTupleConsumer) {
-            for (RightTuple rightTuple = firstRightTuple; rightTuple != null; ) {
-                RightTuple nextRightTuple = rightTuple.getHandleNext();
+            for (RightTupleImpl rightTuple = (RightTupleImpl) firstRightTuple; rightTuple != null; ) {
+                RightTupleImpl nextRightTuple = rightTuple.getHandleNext();
                 rightTupleConsumer.accept( rightTuple );
                 rightTuple = nextRightTuple;
             }
