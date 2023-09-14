@@ -19,6 +19,7 @@
 
 package org.drools.reliability.test;
 
+import org.junit.jupiter.api.condition.DisabledIf;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.kie.api.conf.EventProcessingOption;
@@ -31,6 +32,8 @@ import org.test.domain.StockTick;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@DisabledIf("isRedis") // SimpleSerializationReliableRefObjectStore.setInverseStorage depends on client cache
+        // (The identical same object is returned from the cache), which Jedis doesn't support
 class ObjectReferenceEventTest extends ReliabilityTestBasics {
 
     // This is not a very meaningful rule. Just to demonstrate object reference with events

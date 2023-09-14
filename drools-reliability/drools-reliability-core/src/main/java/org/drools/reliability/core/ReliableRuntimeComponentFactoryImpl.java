@@ -50,7 +50,7 @@ public class ReliableRuntimeComponentFactoryImpl extends RuntimeComponentFactory
     }
 
     private static void refreshReliableSessionsCounterUsingStorage() {
-        Storage<String, Long> sessionsCounter = StorageManagerFactory.get().getStorageManager().getOrCreateSharedStorage("sessionsCounter");
+        Storage<String, Long> sessionsCounter = StorageManagerFactory.get().getStorageManager().getOrCreateSharedStorage("sessionsCounter", String.class);
         if (sessionsCounter.containsKey(NEXT_SESSION_ID)) {
             RELIABLE_SESSIONS_COUNTER.set(sessionsCounter.get(NEXT_SESSION_ID));
         } else {
@@ -78,7 +78,7 @@ public class ReliableRuntimeComponentFactoryImpl extends RuntimeComponentFactory
     }
 
     private void updateSessionsCounter() {
-        Storage<String, Long> sessionsCounter = StorageManagerFactory.get().getStorageManager().getOrCreateSharedStorage("sessionsCounter");
+        Storage<String, Long> sessionsCounter = StorageManagerFactory.get().getStorageManager().getOrCreateSharedStorage("sessionsCounter", String.class);
         sessionsCounter.put(NEXT_SESSION_ID, RELIABLE_SESSIONS_COUNTER.get());
     }
 
@@ -87,7 +87,7 @@ public class ReliableRuntimeComponentFactoryImpl extends RuntimeComponentFactory
         if (!reteEvaluator.getSessionConfiguration().hasPersistedSessionOption()) {
             return super.createGlobalResolver(reteEvaluator, environment);
         }
-        return ReliableGlobalResolverFactory.get().createReliableGlobalResolver(StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(reteEvaluator, PersistedSessionOption.SafepointStrategy.ALWAYS, "globals"));
+        return ReliableGlobalResolverFactory.get().createReliableGlobalResolver(StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(reteEvaluator, PersistedSessionOption.SafepointStrategy.ALWAYS, "globals", String.class));
     }
 
     @Override
@@ -95,7 +95,7 @@ public class ReliableRuntimeComponentFactoryImpl extends RuntimeComponentFactory
         if (!reteEvaluator.getSessionConfiguration().hasPersistedSessionOption()) {
             return super.createTimerService(reteEvaluator);
         }
-        return new ReliablePseudoClockScheduler(StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(reteEvaluator, PersistedSessionOption.SafepointStrategy.ALWAYS, "timer"));
+        return new ReliablePseudoClockScheduler(StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(reteEvaluator, PersistedSessionOption.SafepointStrategy.ALWAYS, "timer", String.class));
     }
 
     private InternalWorkingMemory internalInitSession(InternalKnowledgeBase kbase, SessionConfiguration sessionConfig, InternalWorkingMemory session) {

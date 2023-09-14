@@ -58,13 +58,13 @@ public class H2MVStoreStorageManager implements TestableStorageManager {
     }
 
     @Override
-    public <K, V> Storage<K, V> internalGetOrCreateStorageForSession(ReteEvaluator reteEvaluator, String cacheName) {
+    public <K, V> Storage<K, V> internalGetOrCreateStorageForSession(ReteEvaluator reteEvaluator, String cacheName, Class<K> keyClass) {
         MVMap<K, V> mvMap = mvStore.openMap(createStorageId(reteEvaluator, cacheName));
         return H2MVStoreStorage.fromMVMap(mvMap);
     }
 
     @Override
-    public <K, V> Storage<K, V> getOrCreateSharedStorage(String cacheName) {
+    public <K, V> Storage<K, V> getOrCreateSharedStorage(String cacheName, Class<K> keyClass) {
         MVMap<K, V> mvMap = mvStore.openMap(SHARED_STORAGE_PREFIX + cacheName);
         return H2MVStoreStorage.fromMVMap(mvMap);
     }

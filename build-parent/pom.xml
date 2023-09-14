@@ -127,6 +127,7 @@
     <version.org.mvel>2.5.0.Final</version.org.mvel>
     <version.org.powermock>2.0.7</version.org.powermock>
     <version.org.slf4j>1.7.30</version.org.slf4j>
+    <version.redis.clients.jedis>4.4.4</version.redis.clients.jedis>
     <!-- simple-jndi is a small library that helps us avoid JNDI error messages during testing -->
     <version.simple-jndi>0.11.4.1</version.simple-jndi>
     <version.xerces>2.12.0.SP04</version.xerces>
@@ -351,6 +352,12 @@
         <groupId>com.h2database</groupId>
         <artifactId>h2</artifactId>
         <version>${version.com.h2database}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>redis.clients</groupId>
+        <artifactId>jedis</artifactId>
+        <version>${version.redis.clients.jedis}</version>
       </dependency>
 
       <dependency>

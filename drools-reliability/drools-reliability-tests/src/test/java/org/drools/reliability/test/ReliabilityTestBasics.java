@@ -134,13 +134,17 @@ public abstract class ReliabilityTestBasics {
                 && "PROTOSTREAM".equalsIgnoreCase(getConfig(INFINISPAN_STORAGE_MARSHALLER));
     }
 
+    static boolean isRedis() {
+        return "REDIS".equalsIgnoreCase(getConfig(DROOLS_RELIABILITY_MODULE_TEST));
+    }
+
     static Stream<PersistedSessionOption.PersistenceStrategy> strategyProviderFull() {
         return Stream.of(PersistedSessionOption.PersistenceStrategy.FULL);
     }
 
     @BeforeEach
     public void setUp() {
-        if (((TestableStorageManager) StorageManagerFactory.get().getStorageManager()).isRemote()) {
+        if (isRemoteInfinispan()) {
             LOG.info("Starting InfinispanContainer");
             container = new InfinispanContainer()
                     .withFileSystemBind("infinispan-remote-config", "/user-config")
@@ -155,7 +159,7 @@ public abstract class ReliabilityTestBasics {
 
     @AfterEach
     public void tearDown() {
-        if (((TestableStorageManager) StorageManagerFactory.get().getStorageManager()).isRemote()) {
+        if (isRemoteInfinispan()) {
             StorageManagerFactory.get().getStorageManager().removeAllSessionStorages();
             StorageManagerFactory.get().getStorageManager().close(); // close remoteCacheManager
             container.stop(); // stop remote infinispan
@@ -173,7 +177,7 @@ public abstract class ReliabilityTestBasics {
         sessions.clear();
         kieBaseCache.clear();
 
-        if (((TestableStorageManager) StorageManagerFactory.get().getStorageManager()).isRemote()) {
+        if (isRemoteInfinispan()) {
             // fail-over means restarting Drools instance. Assuming remote infinispan keeps alive
             StorageManagerFactory.get().getStorageManager().close(); // close remoteCacheManager
             // Reclaim RemoteCacheManager

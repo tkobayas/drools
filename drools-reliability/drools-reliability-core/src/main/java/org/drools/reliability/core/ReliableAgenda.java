@@ -33,7 +33,7 @@ public class ReliableAgenda extends DefaultAgenda {
 
     @Override
     protected PropagationList createPropagationList() {
-        Storage<String, Object> componentsStorage = StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(workingMemory, "components");
+        Storage<String, Object> componentsStorage = StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(workingMemory, "components", String.class);
         ReliablePropagationList propagationList = (ReliablePropagationList) componentsStorage.get(PROPAGATION_LIST);
         if (propagationList == null) {
             propagationList = new ReliablePropagationList(workingMemory);

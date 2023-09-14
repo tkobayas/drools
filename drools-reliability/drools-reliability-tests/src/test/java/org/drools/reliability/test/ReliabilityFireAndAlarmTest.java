@@ -18,6 +18,7 @@
  */
 package org.drools.reliability.test;
 
+import org.junit.jupiter.api.condition.DisabledIf;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.kie.api.runtime.conf.PersistedSessionOption;
@@ -31,6 +32,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@DisabledIf("isRedis") // SimpleSerializationReliableRefObjectStore.setInverseStorage depends on client cache
+                       // (The identical same object is returned from the cache), which Jedis doesn't support
 public class ReliabilityFireAndAlarmTest extends ReliabilityTestBasics {
     private static final String FIRE_AND_ALARM =
             "import " + Alarm.class.getCanonicalName() + ";" +

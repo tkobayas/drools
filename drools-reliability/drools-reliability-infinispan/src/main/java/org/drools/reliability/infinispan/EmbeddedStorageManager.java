@@ -94,13 +94,13 @@ public class EmbeddedStorageManager implements InfinispanStorageManager {
     }
 
     @Override
-    public <K, V> Storage<K, V> internalGetOrCreateStorageForSession(ReteEvaluator reteEvaluator, String cacheName) {
+    public <K, V> Storage<K, V> internalGetOrCreateStorageForSession(ReteEvaluator reteEvaluator, String cacheName, Class<K> keyClass) {
         Cache<K, V> cache = embeddedCacheManager.administration().getOrCreateCache(createStorageId(reteEvaluator, cacheName), cacheConfiguration);
         return InfinispanStorage.fromCache(cache);
     }
 
     @Override
-    public <K, V> Storage<K, V> getOrCreateSharedStorage(String cacheName) {
+    public <K, V> Storage<K, V> getOrCreateSharedStorage(String cacheName, Class<K> keyClass) {
         Cache<K, V> cache = embeddedCacheManager.administration().getOrCreateCache(SHARED_STORAGE_PREFIX + cacheName, cacheConfiguration);
         return InfinispanStorage.fromCache(cache);
     }

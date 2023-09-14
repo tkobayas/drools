@@ -24,13 +24,15 @@ import org.drools.reliability.core.StorageManagerFactory;
 
 import static org.drools.reliability.test.util.TestConfigurationUtils.Module.H2MVSTORE;
 import static org.drools.reliability.test.util.TestConfigurationUtils.Module.INFINISPAN;
+import static org.drools.reliability.test.util.TestConfigurationUtils.Module.REDIS;
 import static org.drools.util.Config.getConfig;
 
 public class TestConfigurationUtils {
 
     public enum Module {
         INFINISPAN,
-        H2MVSTORE
+        H2MVSTORE,
+        REDIS
     }
 
     public static final String DROOLS_RELIABILITY_MODULE_TEST = "drools.reliability.module.test";
@@ -45,6 +47,8 @@ public class TestConfigurationUtils {
             prioritizeInfinispanServices();
         } else if (module == H2MVSTORE) {
             prioritizeH2MVStoreServices();
+        } else if (module == REDIS) {
+            prioritizeRedisServices();
         } else {
             throw new IllegalStateException("Unknown module: " + module);
         }
@@ -60,5 +64,11 @@ public class TestConfigurationUtils {
         ReliableGlobalResolverFactory.get("core");
         SimpleReliableObjectStoreFactory.get("core");
         StorageManagerFactory.get("h2mvstore");
+    }
+
+    private static void prioritizeRedisServices() {
+        ReliableGlobalResolverFactory.get("core");
+        SimpleReliableObjectStoreFactory.get("core");
+        StorageManagerFactory.get("redis");
     }
 }

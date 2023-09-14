@@ -49,7 +49,7 @@ public class ReliablePropagationList extends SynchronizedPropagationList impleme
     @Override
     public synchronized PropagationEntry takeAll() {
         PropagationEntry p = super.takeAll();
-        Storage<String, Object> componentsStorage = StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(this.reteEvaluator, "components");
+        Storage<String, Object> componentsStorage = StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(this.reteEvaluator, "components", String.class);
         componentsStorage.put(PROPAGATION_LIST, this);
         return p;
     }

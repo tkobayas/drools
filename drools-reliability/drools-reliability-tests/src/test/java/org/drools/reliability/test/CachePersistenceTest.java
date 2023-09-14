@@ -19,6 +19,7 @@
 package org.drools.reliability.test;
 
 import org.drools.reliability.core.StorageManagerFactory;
+import org.junit.jupiter.api.condition.DisabledIf;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -44,6 +45,7 @@ class CachePersistenceTest extends ReliabilityTestBasics {
                     "then\n" +
                     "end";
 
+    @DisabledIf("isRedis") // getStorageNames is not yet implemented for RedisStorageManager
     @ParameterizedTest
     @MethodSource("strategyProviderStoresOnly")
     void removeAllSessionCaches_shouldRemoveAllSessionCachesEvenAfterFailover(PersistedSessionOption.PersistenceStrategy strategy) {
@@ -62,6 +64,7 @@ class CachePersistenceTest extends ReliabilityTestBasics {
         assertThat(toshiya).isEmpty(); // So cannot recover the fact
     }
 
+    @DisabledIf("isRedis") // getStorageNames is not yet implemented for RedisStorageManager
     @ParameterizedTest
     @MethodSource("strategyProviderStoresOnly")
     void ksessionDispose_shouldRemoveCache(PersistedSessionOption.PersistenceStrategy strategy){

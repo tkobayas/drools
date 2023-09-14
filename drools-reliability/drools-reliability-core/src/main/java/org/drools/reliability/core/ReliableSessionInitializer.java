@@ -64,7 +64,7 @@ public class ReliableSessionInitializer {
         public InternalWorkingMemory init(InternalWorkingMemory session, PersistedSessionOption persistedSessionOption) {
 
             if (persistedSessionOption.getActivationStrategy() == PersistedSessionOption.ActivationStrategy.ACTIVATION_KEY) {
-                Storage<String, Object> activationsStorage = StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(session, "activations");
+                Storage<String, Object> activationsStorage = StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(session, "activations", String.class);
                 ((ReliableKieSession)session).setActivationsStorage(activationsStorage);
             }
 
@@ -178,7 +178,7 @@ public class ReliableSessionInitializer {
             private final ReliablePropagationList propagationList;
 
             FullStoreRuntimeEventListener(InternalWorkingMemory session) {
-                this.componentsCache = StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(session, "components");
+                this.componentsCache = StorageManagerFactory.get().getStorageManager().getOrCreateStorageForSession(session, "components", Object.class);
                 this.propagationList = (ReliablePropagationList) ((ReliableAgenda) session.getAgenda()).getPropagationList();
             }
 
