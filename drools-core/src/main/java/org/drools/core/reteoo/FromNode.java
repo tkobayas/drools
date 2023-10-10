@@ -273,7 +273,7 @@ public class FromNode<T extends FromNode.FromMemory> extends LeftTupleSource
     @Override
     public LeftTuple createPeer(LeftTuple original) {
         FromNodeLeftTuple peer = new FromNodeLeftTuple();
-        peer.initPeer( (BaseLeftTuple) original, this );
+        peer.initPeer((LeftTuple) original, this );
         original.setPeer( peer );
         return peer;
     }    

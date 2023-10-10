@@ -23,7 +23,7 @@ import java.util.Collections;
 import org.drools.core.common.InternalFactHandle;
 import org.drools.core.spi.PropagationContext;
 
-public class FromNodeLeftTuple extends BaseLeftTuple {
+public class FromNodeLeftTuple extends LeftTuple {
     private static final long  serialVersionUID = 540l;
 
     public FromNodeLeftTuple() {
@@ -84,7 +84,6 @@ public class FromNodeLeftTuple extends BaseLeftTuple {
                leftTupleMemoryEnabled );
     }
 
-    @Override
     public Collection<Object> getAccumulatedObjects() {
         if (getFirstChild() == null) {
             return Collections.emptyList();
@@ -97,7 +96,7 @@ public class FromNodeLeftTuple extends BaseLeftTuple {
         }
         if ( getFirstChild().getRightParent() instanceof SubnetworkTuple ) {
             LeftTuple leftParent = (( SubnetworkTuple ) getFirstChild().getRightParent()).getLeftParent();
-            result.addAll( leftParent.getAccumulatedObjects() );
+            result.addAll( ((FromNodeLeftTuple)leftParent).getAccumulatedObjects() );
         }
         return result;
     }

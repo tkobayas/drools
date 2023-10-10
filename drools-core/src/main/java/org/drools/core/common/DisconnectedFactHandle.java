@@ -35,7 +35,6 @@ import org.drools.core.WorkingMemoryEntryPoint;
 import org.drools.core.base.ArrayElements;
 import org.drools.core.base.DroolsQuery;
 import org.drools.core.factmodel.traits.TraitTypeEnum;
-import org.drools.core.reteoo.BaseLeftTuple;
 import org.drools.core.reteoo.LeftTuple;
 import org.drools.core.reteoo.RightTuple;
 import org.drools.core.rule.EntryPointId;
@@ -179,7 +178,7 @@ public class DisconnectedFactHandle
     public void forEachRightTuple( Consumer<RightTuple> rightTupleConsumer ) { }
 
     @Override
-    public void forEachLeftTuple( Consumer<BaseLeftTuple> leftTupleConsumer ) { }
+    public void forEachLeftTuple( Consumer<LeftTuple> leftTupleConsumer ) { }
 
     @Override
     public RightTuple findFirstRightTuple( Predicate<RightTuple> rightTuplePredicate ) {
@@ -187,7 +186,7 @@ public class DisconnectedFactHandle
     }
 
     @Override
-    public BaseLeftTuple findFirstLeftTuple( Predicate<BaseLeftTuple> lefttTuplePredicate ) {
+    public LeftTuple findFirstLeftTuple(Predicate<LeftTuple> lefttTuplePredicate ) {
         return null;
     }
 
