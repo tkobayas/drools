@@ -83,21 +83,4 @@ public class FromNodeLeftTuple extends LeftTuple {
                sink, 
                leftTupleMemoryEnabled );
     }
-
-    public Collection<Object> getAccumulatedObjects() {
-        if (getFirstChild() == null) {
-            return Collections.emptyList();
-        }
-        Collection<Object> result = new ArrayList<>();
-        if ( getContextObject() instanceof AccumulateNode.AccumulateContext ) {
-            for (LeftTuple child = getFirstChild(); child != null; child = child.getHandleNext()) {
-                result.add(child.getContextObject());
-            }
-        }
-        if ( getFirstChild().getRightParent() instanceof SubnetworkTuple ) {
-            LeftTuple leftParent = (( SubnetworkTuple ) getFirstChild().getRightParent()).getLeftParent();
-            result.addAll( ((FromNodeLeftTuple)leftParent).getAccumulatedObjects() );
-        }
-        return result;
-    }
 }

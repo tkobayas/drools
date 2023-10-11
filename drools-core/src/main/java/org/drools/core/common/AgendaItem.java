@@ -77,7 +77,7 @@ public interface AgendaItem<T extends ModedAssertion<T>> extends Activation<T> {
                 Object o = entry.getFactHandle().getObject();
                 if (!(o instanceof QueryElementFactHandle || o instanceof InitialFact)) {
                     list.add(o);
-                    list.addAll(((FromNodeLeftTuple)entry).getAccumulatedObjects() );
+                    list.addAll(entry.getAccumulatedObjects() );
                 }
             }
             entry = entry.getParent();

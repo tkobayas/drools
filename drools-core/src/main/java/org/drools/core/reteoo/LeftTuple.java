@@ -16,7 +16,10 @@
 
 package org.drools.core.reteoo;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 
 import org.drools.core.common.InternalFactHandle;
 import org.drools.core.spi.PropagationContext;
@@ -642,5 +645,22 @@ public class LeftTuple extends BaseTuple {
 
     public boolean isStagedOnRight() {
         return false;
+    }
+
+    public Collection<Object> getAccumulatedObjects() {
+        if (getFirstChild() == null) {
+            return Collections.emptyList();
+        }
+        Collection<Object> result = new ArrayList<>();
+        if ( getContextObject() instanceof AccumulateNode.AccumulateContext ) {
+            for (LeftTuple child = getFirstChild(); child != null; child = child.getHandleNext()) {
+                result.add(child.getContextObject());
+            }
+        }
+        if ( getFirstChild().getRightParent() instanceof SubnetworkTuple ) {
+            LeftTuple leftParent = (( SubnetworkTuple ) getFirstChild().getRightParent()).getLeftParent();
+            result.addAll( leftParent.getAccumulatedObjects() );
+        }
+        return result;
     }
 }
