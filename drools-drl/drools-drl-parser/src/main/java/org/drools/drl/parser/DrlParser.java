@@ -19,6 +19,8 @@
 package org.drools.drl.parser;
 
 import org.drools.io.InternalResource;
+import org.drools.parser.DRLParserError;
+import org.drools.parser.DRLParserWrapper;
 import org.drools.drl.ast.descr.PackageDescr;
 import org.drools.drl.parser.lang.DRLLexer;
 import org.drools.drl.parser.lang.DRLParser;
@@ -55,7 +57,7 @@ public class DrlParser {
     private DRLLexer                lexer                 = null;
     private Resource                resource              = null;
 
-    public static final LanguageLevelOption DEFAULT_LANGUAGE_LEVEL = LanguageLevelOption.DRL6;
+    public static final LanguageLevelOption DEFAULT_LANGUAGE_LEVEL = LanguageLevelOption.DRL10;
     private final LanguageLevelOption languageLevel;
 
     public DrlParser() {
@@ -165,9 +167,34 @@ public class DrlParser {
         this.resource = resource;
         String encoding = resource instanceof InternalResource ? ((InternalResource) resource).getEncoding() : null;
 
-        lexer = DRLFactory.buildLexer(is, encoding, languageLevel);
-        DRLParser parser = DRLFactory.buildParser(lexer, languageLevel);
-        return compile(isEditor, parser);
+        if (languageLevel == LanguageLevelOption.DRL10) {
+            // new parser based on antlr4
+            try {
+                DRLParserWrapper parser = new DRLParserWrapper();
+                PackageDescr packageDescr = parser.parse(is);
+                for (final DRLParserError drlParserError : parser.getErrors()) {
+                    final ParserError err = new ParserError(resource,
+                                                            drlParserError.getMessage(),
+                                                            drlParserError.getLineNumber(),
+                                                            drlParserError.getColumn());
+                    this.results.add(err);
+                }
+                return !this.hasErrors() ? packageDescr : null;
+            } catch (Exception e) {
+                LOG.error("Exception", e);
+                final ParserError err = new ParserError(resource,
+                                                        GENERIC_ERROR_MESSAGE + e.toString() + "\n" + Arrays.toString(e.getStackTrace()),
+                                                        -1,
+                                                        0);
+                this.results.add(err);
+                    throw new DroolsParserException(GENERIC_ERROR_MESSAGE + e.getMessage(), e);
+            }
+        } else {
+            // old parsers based on antlr3
+            lexer = DRLFactory.buildLexer(is, encoding, languageLevel);
+            DRLParser parser = DRLFactory.buildParser(lexer, languageLevel);
+            return compile(isEditor, parser);
+        }
     }
 
     /**

@@ -56,6 +56,14 @@
             <groupId>org.kie</groupId>
             <artifactId>kie-internal</artifactId>
         </dependency>
+
+        <!-- antlr4 based DRL parser from drools-lsp. TODO: Change artifactId -->
+        <dependency>
+            <groupId>org.drools</groupId>
+            <artifactId>drools-parser</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- External dependencies -->
         <dependency>
             <groupId>org.antlr</groupId>
