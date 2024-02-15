@@ -25,8 +25,11 @@ import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -194,6 +197,7 @@ public class ClasspathKieProject extends AbstractKieProject {
     }
 
     private static InternalKieModule fetchKModule(URL url, String fixedURL) {
+        log.info( "fetchKModule url=" + url + " fixedURL=" + fixedURL);
         if ( url.getPath().endsWith("-spring.xml")) {
             // the entire kmodule creation is happening in the kie-spring module,
             // hence we force a null return
@@ -274,6 +278,7 @@ public class ClasspathKieProject extends AbstractKieProject {
     }
 
     private static String getPomPropertiesFromZipFile(String rootPath) {
+        log.info("getPomPropertiesFromZipFile : rootPath = " + rootPath);
         File actualZipFile = new File( rootPath );
         if ( !actualZipFile.exists() ) {
             if (rootPath.indexOf(".jar!") > 0) {
@@ -303,7 +308,7 @@ public class ClasspathKieProject extends AbstractKieProject {
     }
     
     private static String getPomPropertiesFromZipStream(String rootPath) {
-       
+        log.info("getPomPropertiesFromZipStream : rootPath = " + rootPath);
         rootPath = rootPath.substring( rootPath.lastIndexOf( '!' ) + 1 );
         // read jar file from uber-jar
         InputStream in = ClasspathKieProject.class.getResourceAsStream(rootPath);
@@ -395,8 +400,9 @@ public class ClasspathKieProject extends AbstractKieProject {
             urlType = urlPath.substring( 0,
                                          colonIndex );
         }
-
         urlPath = url.getPath();
+
+        log.info("fixURLFromKProjectPath: url=" + urlPath);
 
         if ( "jar".equals( urlType ) ) {
             // switch to using getPath() instead of toExternalForm()
@@ -464,6 +470,7 @@ public class ClasspathKieProject extends AbstractKieProject {
                 log.warn( "Found virtual file " + url + " but org.jboss.vfs.VFS is not available on the classpath" );
             }
         }
+        log.info("getPathForVFS: m=" + m + " m2=" + m2);
 
         if (m == null || m2 == null) {
             return url.getPath();
@@ -471,7 +478,10 @@ public class ClasspathKieProject extends AbstractKieProject {
 
         String path = null;
         try {
+            Object virtualFile = m2.invoke(null, url.toURI());
+            log.info("virtualFile=" + virtualFile);
             File f = (File)m.invoke( m2.invoke(null, url.toURI()) );
+            log.info("f=" + f);
             path = f.getPath();
         } catch (Exception e) {
             log.error( "Error when reading virtual file from " + url.toString(), e );
@@ -489,6 +499,8 @@ public class ClasspathKieProject extends AbstractKieProject {
         int kModulePos = urlString.length() - ("/" + KieModuleModelImpl.KMODULE_JAR_PATH).length();
         boolean isInJar = urlString.substring(kModulePos - 4, kModulePos).equals(".jar");
 
+        log.info("  isInJar=" + isInJar + " kModulePos=" + kModulePos + " urlString=" + urlString + " path=" + path);
+
         try {
             if (isInJar && path.contains("contents" + File.separator)) {
                 String jarName = urlString.substring(0, kModulePos);
@@ -498,6 +510,28 @@ public class ClasspathKieProject extends AbstractKieProject {
                 path = new File(jarPath).exists() ? jarPath : jarFolderPath + "content";
             } else if (path.endsWith(File.separator + KieModuleModelImpl.KMODULE_FILE_NAME)) {
                 path = path.substring( 0, path.length() - ("/" + KieModuleModelImpl.KMODULE_JAR_PATH).length() );
+            }
+
+            if (!Files.exists(Paths.get(path))) {
+                log.info("path : " + path + " --- does not exist");
+                log.info("fallback for EAP 7.14.5");
+                try {
+                    Method m3 = Class.forName("org.jboss.vfs.VFS").getDeclaredMethod("getMount", Class.forName("org.jboss.vfs.VirtualFile"));
+                    m3.setAccessible(true);
+                    Method m4 = Class.forName("org.jboss.vfs.VFS$Mount").getDeclaredMethod("getFileSystem");
+                    m4.setAccessible(true);
+                    Method m5 = Class.forName("org.jboss.vfs.spi.FileSystem").getMethod("getMountSource");
+
+                    Object virtualFile = m2.invoke(null, url.toURI());
+                    Object mount = m3.invoke(null, virtualFile);
+                    Object fileSystem = m4.invoke(mount);
+                    log.info("fileSystem : " + fileSystem);
+                    File mountSource = (File) m5.invoke(fileSystem);
+                    log.info("mountSource : " + mountSource);
+                    path = mountSource.getPath();
+                } catch (Exception e) {
+                    e.printStackTrace(System.out);
+                }
             }
 
             log.info( "Virtual file physical path = " + path );
