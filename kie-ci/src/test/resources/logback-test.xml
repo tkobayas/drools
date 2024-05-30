@@ -9,6 +9,8 @@
 
   <logger name="org.kie" level="warn"/>
   <logger name="org.drools" level="warn"/>
+  <logger name="org.kie.api.builder.KieScanner" level="debug"/>
+  <logger name="org.drools.compiler.kie.builder.impl" level="debug"/>
 
   <root level="warn">
     <appender-ref ref="consoleAppender" />
