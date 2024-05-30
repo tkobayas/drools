@@ -27,18 +27,20 @@ import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.drools.core.util.FileManager;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.kie.api.KieServices;
 import org.kie.api.builder.ReleaseId;
 import org.kie.scanner.AbstractKieCiTest;
 import org.kie.scanner.KieMavenRepository;
+import org.kie.test.testcategory.TurtleTestCategory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertTrue;
 import static org.kie.scanner.KieMavenRepository.getKieMavenRepository;
 
+@Category(TurtleTestCategory.class)
 public class ConcurrentBuildTest extends AbstractKieCiTest {
     private static final Logger LOG = LoggerFactory.getLogger(ConcurrentBuildTest.class);
 
@@ -56,7 +58,7 @@ public class ConcurrentBuildTest extends AbstractKieCiTest {
         this.fileManager.tearDown();
     }
 
-    //@Ignore("")
+    // This is TurtleTest. You can run this test with -PrunTurtleTests
     @Test
     public void concurrentBuildWithDependency() throws Exception {
         KieServices ks = KieServices.Factory.get();
@@ -83,7 +85,7 @@ public class ConcurrentBuildTest extends AbstractKieCiTest {
             repository.installArtifact(releaseIdDepB, kJarDepB, createKPom(fileManager, releaseIdDepB, releaseIdDepA));
             KieServices.Factory.get().getRepository().removeKieModule(releaseIdDepB);
 
-            System.out.println("===== dep artifacts are ready");
+            System.out.println("===== dep artifacts are ready. Start concurrent build");
 
             final int maxThread = 20;
             ExecutorService executor = Executors.newFixedThreadPool(maxThread);
