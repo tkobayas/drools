@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.appformer.maven.support.PomModel;
 import org.drools.compiler.compiler.io.memory.MemoryFileSystem;
@@ -67,8 +66,6 @@ public class KieRepositoryImpl
     public static final KieRepository INSTANCE = new KieRepositoryImpl();
 
     private final KieModuleRepo kieModuleRepo;
-
-    //private final ReentrantLock kieModuleRepoAndKieScannerLock = new ReentrantLock();
 
     public static void setInternalKieScanner(InternalKieScanner scanner) {
         synchronized (KieScannerHolder.class) {
@@ -128,9 +125,7 @@ public class KieRepositoryImpl
     }
 
     public KieModule getKieModule(ReleaseId releaseId, PomModel pomModel) {
-        log.debug("getKieModule : about to lock kieModuleRepo : " + releaseId);
         KieModule kieModule = kieModuleRepo.load( KieScannerHolder.kieScanner, releaseId );
-        log.debug("getKieModule : kieModuleRepo released");
         if (kieModule == null) {
             log.debug("KieModule Lookup. ReleaseId {} was not in cache, checking classpath",
                       releaseId.toExternalForm());
@@ -195,13 +190,9 @@ public class KieRepositoryImpl
 
     private KieModule loadKieModuleFromMavenRepo(ReleaseId releaseId, PomModel pomModel) {
         KieModule kieModule;
-        log.debug("loadKieModuleFromMavenRepo : about to lock kieModuleRepo : " + releaseId);
         synchronized (kieModuleRepo) { // Make sure kieModuleRepo lock is acquired before kieScanner lock
-            log.debug("loadKieModuleFromMavenRepo - about to lock kieScanner : " + releaseId);
             kieModule = KieScannerHolder.kieScanner.loadArtifact(releaseId, pomModel);
-            log.debug("loadKieModuleFromMavenRepo - kieScanner released");
         }
-        log.debug("loadKieModuleFromMavenRepo : kieModuleRepo released");
         return kieModule;
     }
 
@@ -436,7 +427,6 @@ public class KieRepositoryImpl
         }
 
         synchronized KieModule load(InternalKieScanner kieScanner, ReleaseId releaseId) {
-            log.debug("load : kieModuleRepo locked") ;
             return load(kieScanner, releaseId, new VersionRange(releaseId.getVersion()));
         }
 
@@ -453,9 +443,7 @@ public class KieRepositoryImpl
                 if ( kieModule != null && releaseId.isSnapshot() ) {
                     String oldSnapshotVersion = ((ReleaseIdImpl)kieModule.getReleaseId()).getSnapshotVersion();
                     if ( oldSnapshotVersion != null ) {
-                        log.debug("load : about to lock kieScanner");
                         String currentSnapshotVersion = kieScanner.getArtifactVersion(releaseId);
-                        log.debug("load : kieScanner released");
                         if (currentSnapshotVersion != null &&
                             new ComparableVersion(currentSnapshotVersion).compareTo(new ComparableVersion(oldSnapshotVersion)) > 0) {
                             // if the snapshot currently available on the maven repo is newer than the cached one
