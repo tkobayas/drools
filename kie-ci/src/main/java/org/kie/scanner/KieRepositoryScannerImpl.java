@@ -106,6 +106,7 @@ public class KieRepositoryScannerImpl extends AbstractKieScanner<Map<DependencyD
     }
 
     public synchronized KieModule loadArtifact(ReleaseId releaseId, PomModel pomModel) {
+        log.debug("kieScanner locked");
         ArtifactResolver resolver = pomModel != null ?
                                     ArtifactResolver.getResolverFor(pomModel) :
                                     getArtifactResolver();
@@ -118,6 +119,7 @@ public class KieRepositoryScannerImpl extends AbstractKieScanner<Map<DependencyD
     }
 
     public synchronized String getArtifactVersion(ReleaseId releaseId) {
+        log.debug("getArtifactVersion : kieScanner locked");
         if (!releaseId.isSnapshot()) {
             return releaseId.getVersion();
         }
@@ -147,6 +149,7 @@ public class KieRepositoryScannerImpl extends AbstractKieScanner<Map<DependencyD
     }
     
     private void addDependencies(InternalKieModule kieModule, ArtifactResolver resolver, List<DependencyDescriptor> dependencies) {
+        log.debug("addDependencies : dependencies = " + dependencies);
         for (DependencyDescriptor dep : dependencies) {
             InternalKieModule dependency = (InternalKieModule) KieServices.Factory.get().getRepository().getKieModule(adapt( dep.getReleaseId() ));
             if (dependency != null) {
