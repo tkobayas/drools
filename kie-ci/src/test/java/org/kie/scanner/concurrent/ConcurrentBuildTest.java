@@ -59,7 +59,7 @@ public class ConcurrentBuildTest extends AbstractKieCiTest {
     }
 
     // This is TurtleTest. You can run this test with -PrunTurtleTests
-    @Test
+    @Test(timeout=600000)
     public void concurrentBuildWithDependency() throws Exception {
         KieServices ks = KieServices.Factory.get();
         KieMavenRepository repository = getKieMavenRepository();
