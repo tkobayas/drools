@@ -189,7 +189,11 @@ public class KieRepositoryImpl
     }
 
     private KieModule loadKieModuleFromMavenRepo(ReleaseId releaseId, PomModel pomModel) {
-        return KieScannerHolder.kieScanner.loadArtifact( releaseId, pomModel );
+        KieModule kieModule;
+        synchronized (kieModuleRepo) { // Make sure kieModuleRepo lock is acquired before kieScanner lock
+            kieModule = KieScannerHolder.kieScanner.loadArtifact(releaseId, pomModel);
+        }
+        return kieModule;
     }
 
     private static class DummyKieScanner
