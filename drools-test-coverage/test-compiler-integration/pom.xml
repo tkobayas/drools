@@ -157,7 +157,12 @@
           <artifactId>hamcrest-core</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>  
+    </dependency>
+    <dependency>
+      <groupId>org.kie</groupId>
+      <artifactId>kie-ci</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <profiles>

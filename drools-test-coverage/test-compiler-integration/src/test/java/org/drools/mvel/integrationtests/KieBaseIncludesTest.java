@@ -16,21 +16,31 @@
 
 package org.drools.mvel.integrationtests;
 
+import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
+import org.drools.compiler.kie.builder.impl.InternalKieModule;
+import org.drools.core.util.FileManager;
 import org.drools.testcoverage.common.util.KieBaseTestConfiguration;
 import org.drools.testcoverage.common.util.KieUtil;
+import org.drools.testcoverage.common.util.MavenUtil;
 import org.drools.testcoverage.common.util.TestParametersUtil;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.kie.api.KieBase;
 import org.kie.api.KieServices;
+import org.kie.api.builder.KieBuilder;
 import org.kie.api.builder.KieFileSystem;
+import org.kie.api.builder.Message;
 import org.kie.api.builder.ReleaseId;
 import org.kie.api.definition.KiePackage;
 import org.kie.api.definition.rule.Rule;
 import org.kie.api.runtime.KieContainer;
+import org.kie.scanner.KieMavenRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,6 +49,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class KieBaseIncludesTest {
 
     private final KieBaseTestConfiguration kieBaseTestConfiguration;
+
+    private FileManager fileManager;
+
+    @Before
+    public void setUp() throws Exception {
+        this.fileManager = new FileManager();
+        this.fileManager.setUp();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        this.fileManager.tearDown();
+    }
 
     public KieBaseIncludesTest(final KieBaseTestConfiguration kieBaseTestConfiguration) {
         this.kieBaseTestConfiguration = kieBaseTestConfiguration;
@@ -240,5 +263,86 @@ public class KieBaseIncludesTest {
             nrOfRules += rules.size();
         }
         return nrOfRules;
+    }
+
+    /**
+     * Test the inclusion of a KieBase defined in one KJAR into the KieBase of another KJAR.
+     * <p/>
+     * The 2 KieBases use the duplicate rule names, so an error should be reported
+     */
+    @Test
+    public void kieBaseIncludesCrossKJarDuplicateRuleNames_shouldReportError() throws IOException {
+
+        String pomContentMain = "<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n" +
+                "<modelVersion>4.0.0</modelVersion>\n" +
+                "<groupId>org.kie</groupId>\n" +
+                "<artifactId>rules-main</artifactId>\n" +
+                "<version>1.0.0</version>\n" +
+                "<packaging>jar</packaging>\n" +
+                "<dependencies>\n" +
+                "<dependency>\n" +
+                "<groupId>org.kie</groupId>\n" +
+                "<artifactId>rules-sub</artifactId>\n" +
+                "<version>1.0.0</version>\n" +
+                "</dependency>\n" +
+                "</dependencies>\n" +
+                "</project>\n";
+
+        String kmoduleContentMain = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<kmodule xmlns=\"http://jboss.org/kie/6.0.0/kmodule\">\n" +
+                "<kbase name=\"kbaseMain\" equalsBehavior=\"equality\" default=\"true\" packages=\"rules\" includes=\"kbaseSub\">\n" +
+                "<ksession name=\"ksessionMain\" default=\"true\" type=\"stateful\"/>\n" +
+                "</kbase>\n" +
+                "</kmodule>";
+
+        String drlMain = "package rules\n" +
+                "\n" +
+                "rule \"RuleA\"\n" +
+                "when\n" +
+                "then\n" +
+                "System.out.println(\"Rule in KieBaseMain\");\n" +
+                "end";
+
+        String kmoduleContentSub = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<kmodule xmlns=\"http://jboss.org/kie/6.0.0/kmodule\">\n" +
+                "<kbase name=\"kbaseSub\" equalsBehavior=\"equality\" default=\"false\" packages=\"rules\">\n" +
+                "<ksession name=\"ksessionSub\" default=\"false\" type=\"stateful\"/>\n" +
+                "</kbase>\n" +
+                "</kmodule>";
+
+        String drlSub = "package rules\n" +
+                "\n" +
+                "rule \"RuleA\"\n" +
+                "when\n" +
+                "then\n" +
+                "System.out.println(\"Rule in KieBaseSub\");\n" +
+                "end";
+
+        KieServices ks = KieServices.Factory.get();
+        ReleaseId releaseIdSub = ks.newReleaseId("org.kie", "rules-sub", "1.0.0");
+
+        //First deploy the second KJAR on which the first one depends.
+        KieFileSystem kfsSub = ks.newKieFileSystem()
+                .generateAndWritePomXML(releaseIdSub)
+                .write("src/main/resources/rules/rules.drl", drlSub)
+                .writeKModuleXML(kmoduleContentSub);
+
+        KieBuilder kieBuilderSub = KieUtil.getKieBuilderFromKieFileSystem(kieBaseTestConfiguration, kfsSub, true);
+
+        // install "rules-sub" into maven local repository, remove it from in-memory KieRepository. Simulating kie-maven-plugin use case
+        final KieMavenRepository repository = KieMavenRepository.getKieMavenRepository();
+        repository.installArtifact(releaseIdSub, (InternalKieModule) kieBuilderSub.getKieModule(), MavenUtil.createPomXml(fileManager, releaseIdSub));
+        ks.getRepository().removeKieModule(releaseIdSub);
+
+        KieFileSystem kfsMain = ks.newKieFileSystem()
+                .writePomXML(pomContentMain)
+                .write("src/main/resources/rules/rules.drl", drlMain)
+                .writeKModuleXML(kmoduleContentMain);
+
+        KieBuilder kieBuilderMain = KieUtil.getKieBuilderFromKieFileSystem(kieBaseTestConfiguration, kfsMain, false);
+        List<Message> messages = kieBuilderMain.getResults().getMessages(Message.Level.ERROR);
+
+        assertThat(messages).as("Duplication error should be reported")
+                .extracting(Message::getText).anyMatch(text -> text.contains("Duplicate rule name"));
     }
 }
