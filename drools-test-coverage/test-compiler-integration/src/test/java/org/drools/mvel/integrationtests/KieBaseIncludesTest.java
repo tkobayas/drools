@@ -20,11 +20,9 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
-import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.drools.core.util.FileManager;
 import org.drools.testcoverage.common.util.KieBaseTestConfiguration;
 import org.drools.testcoverage.common.util.KieUtil;
-import org.drools.testcoverage.common.util.MavenUtil;
 import org.drools.testcoverage.common.util.TestParametersUtil;
 import org.junit.After;
 import org.junit.Before;
@@ -40,7 +38,6 @@ import org.kie.api.builder.ReleaseId;
 import org.kie.api.definition.KiePackage;
 import org.kie.api.definition.rule.Rule;
 import org.kie.api.runtime.KieContainer;
-import org.kie.scanner.KieMavenRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -327,12 +324,7 @@ public class KieBaseIncludesTest {
                 .write("src/main/resources/rules/rules.drl", drlSub)
                 .writeKModuleXML(kmoduleContentSub);
 
-        KieBuilder kieBuilderSub = KieUtil.getKieBuilderFromKieFileSystem(kieBaseTestConfiguration, kfsSub, true);
-
-        // install "rules-sub" into maven local repository, remove it from in-memory KieRepository. Simulating kie-maven-plugin use case
-        final KieMavenRepository repository = KieMavenRepository.getKieMavenRepository();
-        repository.installArtifact(releaseIdSub, (InternalKieModule) kieBuilderSub.getKieModule(), MavenUtil.createPomXml(fileManager, releaseIdSub));
-        ks.getRepository().removeKieModule(releaseIdSub);
+        KieUtil.getKieBuilderFromKieFileSystem(kieBaseTestConfiguration, kfsSub, true);
 
         KieFileSystem kfsMain = ks.newKieFileSystem()
                 .writePomXML(pomContentMain)
