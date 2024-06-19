@@ -34,6 +34,7 @@ import org.drools.compiler.compiler.ParserError;
 import org.drools.compiler.kie.builder.impl.AbstractKieModule;
 import org.drools.compiler.kie.builder.impl.BuildContext;
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
+import org.drools.compiler.kproject.models.KieBaseModelImpl;
 import org.drools.compiler.lang.descr.AbstractClassTypeDeclarationDescr;
 import org.drools.compiler.lang.descr.CompositePackageDescr;
 import org.drools.compiler.lang.descr.EnumDeclarationDescr;
@@ -48,6 +49,7 @@ import org.drools.core.rule.ImportDeclaration;
 import org.drools.core.rule.TypeDeclaration;
 import org.drools.core.util.StringUtils;
 import org.drools.modelcompiler.CanonicalKieModule;
+import org.drools.modelcompiler.CanonicalKiePackages;
 import org.drools.modelcompiler.builder.errors.UnsupportedFeatureError;
 import org.drools.modelcompiler.builder.generator.DRLIdGenerator;
 import org.drools.modelcompiler.builder.generator.DrlxParseUtil;
@@ -57,6 +59,7 @@ import org.kie.api.KieServices;
 import org.kie.api.builder.KieModule;
 import org.kie.api.builder.KieRepository;
 import org.kie.api.builder.ReleaseId;
+import org.kie.api.builder.model.KieBaseModel;
 import org.kie.api.runtime.KieContainer;
 import org.kie.internal.builder.KnowledgeBuilder;
 import org.kie.internal.builder.ResultSeverity;
@@ -322,28 +325,18 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
         super.validateUniqueRuleNames(packageDescr);
 
         // check for duplicated rule names in included kbase
-        Map<String, InternalKieModule> includeModules = getBuildContext().getIncludeModules();
+        Map<KieBaseModel, InternalKieModule> includeModules = getBuildContext().getIncludeModules();
         List<String> ruleNamesInIncludeKBases = new ArrayList<>();
-        for (Map.Entry<String, InternalKieModule> entry : includeModules.entrySet()) {
-            String kBaseName = entry.getKey();
+        for (Map.Entry<KieBaseModel, InternalKieModule> entry : includeModules.entrySet()) {
+            KieBaseModel kieBaseModel = entry.getKey();
             InternalKieModule includeModule = entry.getValue();
             if (!(includeModule instanceof CanonicalKieModule)) {
                 continue;
             }
             CanonicalKieModule canonicalKieModule = (CanonicalKieModule) includeModule;
-            InternalKieModule internalKieModule = canonicalKieModule.getInternalKieModule();
-            if (!(internalKieModule instanceof AbstractKieModule)) {
-                continue;
-            }
-            AbstractKieModule abstractKieModule = (AbstractKieModule) internalKieModule;
-            ReleaseId internalReleaseId = abstractKieModule.getReleaseId();
-            KieServices ks = KieServices.Factory.get();
-            KieContainer kieContainer = ks.newKieContainer(internalReleaseId);
-            KieBase kieBase = kieContainer.getKieBase(kBaseName);
-            // add rule names to ruleNamesInIncludeKBases
-            kieBase.getKiePackages().stream()
-                    .filter(kPkg -> kPkg.getName().equals(packageDescr.getNamespace()))
-                    .flatMap(kPkg -> kPkg.getRules().stream())
+            CanonicalKiePackages kiePackages = canonicalKieModule.getKiePackages((KieBaseModelImpl) kieBaseModel);
+            kiePackages.getKiePackage(packageDescr.getNamespace())
+                    .getRules()
                     .forEach(rule -> ruleNamesInIncludeKBases.add(rule.getName()));
         }
         for (final RuleDescr ruleDescr : packageDescr.getRules()) {

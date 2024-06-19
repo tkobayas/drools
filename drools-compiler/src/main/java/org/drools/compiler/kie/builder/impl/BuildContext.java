@@ -15,8 +15,10 @@
 
 package org.drools.compiler.kie.builder.impl;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
+
+import org.kie.api.builder.model.KieBaseModel;
 
 public class BuildContext {
     private final ResultsImpl messages;
@@ -37,11 +39,11 @@ public class BuildContext {
         return true;
     }
 
-    public void addIncludeModule(String kBaseName, InternalKieModule includeModule) {
+    public void addIncludeModule(KieBaseModel kieBaseModel, InternalKieModule includeModule) {
         // no op
     }
 
-    public Map<String, InternalKieModule> getIncludeModules() {
-        return new HashMap<>();
+    public Map<KieBaseModel, InternalKieModule> getIncludeModules() {
+        return Collections.emptyMap();
     }
 }
