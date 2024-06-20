@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,24 +30,31 @@ import org.drools.compiler.builder.impl.KnowledgeBuilderConfigurationImpl;
 import org.drools.compiler.builder.impl.KnowledgeBuilderImpl;
 import org.drools.compiler.builder.impl.TypeDeclarationFactory;
 import org.drools.compiler.compiler.PackageRegistry;
+import org.drools.compiler.compiler.ParserError;
 import org.drools.compiler.kie.builder.impl.BuildContext;
+import org.drools.compiler.kie.builder.impl.InternalKieModule;
+import org.drools.compiler.kproject.models.KieBaseModelImpl;
 import org.drools.compiler.lang.descr.AbstractClassTypeDeclarationDescr;
 import org.drools.compiler.lang.descr.CompositePackageDescr;
 import org.drools.compiler.lang.descr.EnumDeclarationDescr;
 import org.drools.compiler.lang.descr.GlobalDescr;
 import org.drools.compiler.lang.descr.ImportDescr;
 import org.drools.compiler.lang.descr.PackageDescr;
+import org.drools.compiler.lang.descr.RuleDescr;
 import org.drools.compiler.lang.descr.TypeDeclarationDescr;
 import org.drools.core.addon.TypeResolver;
 import org.drools.core.definitions.InternalKnowledgePackage;
 import org.drools.core.rule.ImportDeclaration;
 import org.drools.core.rule.TypeDeclaration;
 import org.drools.core.util.StringUtils;
+import org.drools.model.Model;
+import org.drools.modelcompiler.CanonicalKieModule;
 import org.drools.modelcompiler.builder.errors.UnsupportedFeatureError;
 import org.drools.modelcompiler.builder.generator.DRLIdGenerator;
 import org.drools.modelcompiler.builder.generator.DrlxParseUtil;
 import org.drools.modelcompiler.builder.generator.declaredtype.POJOGenerator;
 import org.kie.api.builder.ReleaseId;
+import org.kie.api.builder.model.KieBaseModel;
 import org.kie.internal.builder.ResultSeverity;
 
 import static com.github.javaparser.StaticJavaParser.parseImport;
@@ -67,6 +75,8 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
     private final Map<String, T> packageSources = new HashMap<>();
 
     private Map<String, CompositePackageDescr> compositePackagesMap;
+
+    private Map<String, Set<String>> includedRuleNameMap = new HashMap<>();
 
     public ModelBuilderImpl(Function<PackageModel, T> sourcesGenerator, KnowledgeBuilderConfigurationImpl configuration, ReleaseId releaseId, boolean oneClassPerRule) {
         super(configuration);
@@ -216,6 +226,8 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
             return;
         }
 
+        populateIncludedRuleNameMap();
+
         for (CompositePackageDescr packageDescr : packages) {
             setAssetFilter(packageDescr.getFilter());
             PackageRegistry pkgRegistry = getPackageRegistry(packageDescr.getNamespace());
@@ -226,6 +238,22 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
             pkgModel.setOneClassPerRule( oneClassPerRule );
             if (getResults( ResultSeverity.ERROR ).isEmpty()) {
                 packageSources.put( pkgModel.getName(), sourcesGenerator.apply( pkgModel ) );
+            }
+        }
+    }
+
+    private void populateIncludedRuleNameMap() {
+        Map<KieBaseModel, InternalKieModule> includeModules = getBuildContext().getIncludeModules();
+        for (Map.Entry<KieBaseModel, InternalKieModule> entry : includeModules.entrySet()) {
+            KieBaseModel kieBaseModel = entry.getKey();
+            InternalKieModule includeModule = entry.getValue();
+            if (!(includeModule instanceof CanonicalKieModule)) {
+                continue;
+            }
+            CanonicalKieModule canonicalKieModule = (CanonicalKieModule) includeModule;
+            Collection<Model> includeModels = canonicalKieModule.getModelForKBase((KieBaseModelImpl)kieBaseModel);
+            for (Model includeModel : includeModels) {
+                includeModel.getRules().forEach(rule -> includedRuleNameMap.computeIfAbsent(includeModel.getPackageName(), k -> new HashSet<>()).add(rule.getName()));
             }
         }
     }
@@ -302,5 +330,26 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
     @Override
     protected BuildContext createBuildContext() {
         return new CanonicalModelBuildContext();
+    }
+
+    // Overridden, because exec-model doesn't add assets of included kbase to the packageDescr
+    @Override
+    protected void validateUniqueRuleNames(final PackageDescr packageDescr) {
+        super.validateUniqueRuleNames(packageDescr);
+
+        // check for duplicated rule names in included kbase
+        if (includedRuleNameMap.containsKey(packageDescr.getNamespace())) {
+            Set<String> ruleNames = includedRuleNameMap.get(packageDescr.getNamespace());
+            for (final RuleDescr ruleDescr : packageDescr.getRules()) {
+                if (ruleNames.contains(ruleDescr.getName())) {
+                    addBuilderResult(new ParserError(ruleDescr.getResource(),
+                                                     "Duplicate rule name: " + ruleDescr.getName(),
+                                                     ruleDescr.getLine(),
+                                                     ruleDescr.getColumn(),
+                                                     packageDescr.getNamespace()));
+                }
+            }
+        }
+
     }
 }

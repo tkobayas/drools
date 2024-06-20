@@ -236,6 +236,8 @@ public abstract class AbstractKieProject implements KieProject {
             }
             if (compileIncludedKieBases()) {
                 addFiles( buildFilter, assets, getKieBaseModel( include ), includeModule, useFolders );
+            } else {
+                buildContext.addIncludeModule(getKieBaseModel(include), includeModule);
             }
         }
 
