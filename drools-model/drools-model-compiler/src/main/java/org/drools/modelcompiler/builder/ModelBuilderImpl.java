@@ -60,6 +60,7 @@ import org.kie.api.builder.KieModule;
 import org.kie.api.builder.KieRepository;
 import org.kie.api.builder.ReleaseId;
 import org.kie.api.builder.model.KieBaseModel;
+import org.kie.api.definition.KiePackage;
 import org.kie.api.runtime.KieContainer;
 import org.kie.internal.builder.KnowledgeBuilder;
 import org.kie.internal.builder.ResultSeverity;
@@ -335,9 +336,10 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
             }
             CanonicalKieModule canonicalKieModule = (CanonicalKieModule) includeModule;
             CanonicalKiePackages kiePackages = canonicalKieModule.getKiePackages((KieBaseModelImpl) kieBaseModel);
-            kiePackages.getKiePackage(packageDescr.getNamespace())
-                    .getRules()
-                    .forEach(rule -> ruleNamesInIncludeKBases.add(rule.getName()));
+            KiePackage kiePackage = kiePackages.getKiePackage(packageDescr.getNamespace());
+            if (kiePackage != null) {
+                kiePackage.getRules().forEach(rule -> ruleNamesInIncludeKBases.add(rule.getName()));
+            }
         }
         for (final RuleDescr ruleDescr : packageDescr.getRules()) {
             if (ruleNamesInIncludeKBases.contains(ruleDescr.getName())) {
