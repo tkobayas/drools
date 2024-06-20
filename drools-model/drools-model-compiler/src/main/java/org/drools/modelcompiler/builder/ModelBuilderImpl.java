@@ -84,6 +84,8 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
 
     private Map<String, CompositePackageDescr> compositePackagesMap;
 
+    private Map<String, List<String>> includedRuleNameMap = new HashMap<>();
+
     public ModelBuilderImpl(Function<PackageModel, T> sourcesGenerator, KnowledgeBuilderConfigurationImpl configuration, ReleaseId releaseId, boolean oneClassPerRule) {
         super(configuration);
         this.sourcesGenerator = sourcesGenerator;
@@ -232,6 +234,8 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
             return;
         }
 
+        populateIncludedRuleNameMap();
+
         for (CompositePackageDescr packageDescr : packages) {
             setAssetFilter(packageDescr.getFilter());
             PackageRegistry pkgRegistry = getPackageRegistry(packageDescr.getNamespace());
@@ -242,6 +246,25 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
             pkgModel.setOneClassPerRule( oneClassPerRule );
             if (getResults( ResultSeverity.ERROR ).isEmpty()) {
                 packageSources.put( pkgModel.getName(), sourcesGenerator.apply( pkgModel ) );
+            }
+        }
+    }
+
+    private void populateIncludedRuleNameMap() {
+        Map<KieBaseModel, InternalKieModule> includeModules = getBuildContext().getIncludeModules();
+        for (Map.Entry<KieBaseModel, InternalKieModule> entry : includeModules.entrySet()) {
+            KieBaseModel kieBaseModel = entry.getKey();
+            InternalKieModule includeModule = entry.getValue();
+            if (!(includeModule instanceof CanonicalKieModule)) {
+                continue;
+            }
+            CanonicalKieModule canonicalKieModule = (CanonicalKieModule) includeModule;
+            CanonicalKiePackages canonicalKiePackages = canonicalKieModule.getKiePackages((KieBaseModelImpl) kieBaseModel);
+            Collection<InternalKnowledgePackage> kiePackages = canonicalKiePackages.getKiePackages();
+            for (InternalKnowledgePackage kiePackage : kiePackages) {
+                kiePackage.getRules().forEach(rule -> {
+                    includedRuleNameMap.computeIfAbsent(kiePackage.getName(), k -> new ArrayList<>()).add(rule.getName());
+                });
             }
         }
     }
@@ -326,23 +349,9 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
         super.validateUniqueRuleNames(packageDescr);
 
         // check for duplicated rule names in included kbase
-        Map<KieBaseModel, InternalKieModule> includeModules = getBuildContext().getIncludeModules();
-        List<String> ruleNamesInIncludeKBases = new ArrayList<>();
-        for (Map.Entry<KieBaseModel, InternalKieModule> entry : includeModules.entrySet()) {
-            KieBaseModel kieBaseModel = entry.getKey();
-            InternalKieModule includeModule = entry.getValue();
-            if (!(includeModule instanceof CanonicalKieModule)) {
-                continue;
-            }
-            CanonicalKieModule canonicalKieModule = (CanonicalKieModule) includeModule;
-            CanonicalKiePackages kiePackages = canonicalKieModule.getKiePackages((KieBaseModelImpl) kieBaseModel);
-            KiePackage kiePackage = kiePackages.getKiePackage(packageDescr.getNamespace());
-            if (kiePackage != null) {
-                kiePackage.getRules().forEach(rule -> ruleNamesInIncludeKBases.add(rule.getName()));
-            }
-        }
+        List<String> ruleNames = includedRuleNameMap.computeIfAbsent(packageDescr.getNamespace(), k -> new ArrayList<>());
         for (final RuleDescr ruleDescr : packageDescr.getRules()) {
-            if (ruleNamesInIncludeKBases.contains(ruleDescr.getName())) {
+            if (ruleNames.contains(ruleDescr.getName())) {
                 addBuilderResult(new ParserError(ruleDescr.getResource(),
                                                  "Duplicate rule name: " + ruleDescr.getName(),
                                                  ruleDescr.getLine(),
