@@ -73,6 +73,7 @@ import org.drools.model.Model;
 import org.drools.model.NamedModelItem;
 import org.drools.modelcompiler.builder.CanonicalKieBaseUpdater;
 import org.drools.modelcompiler.builder.KieBaseBuilder;
+import org.drools.modelcompiler.builder.errors.PackageBuildException;
 import org.drools.reflective.ResourceProvider;
 import org.drools.reflective.classloader.ProjectClassLoader;
 import org.kie.api.KieBaseConfiguration;
@@ -303,7 +304,8 @@ public class CanonicalKieModule implements InternalKieModule {
             modelsForKBase = getModelForKBase(kBaseModel);
         } else {
             modelsForKBase = new ArrayList<>(getModelForKBase(kBaseModel));
-
+            Map<String, Set<String>> mainModelsRuleNames = collectModelsRuleNames(modelsForKBase);
+            Map<String, Set<String>> includedModelsRuleNames = new HashMap<>();
             for (String include : includes) {
                 if (StringUtils.isEmpty(include)) {
                     continue;
@@ -322,9 +324,12 @@ public class CanonicalKieModule implements InternalKieModule {
                 KieBaseModelImpl includeKBaseModel = (KieBaseModelImpl) kieProject.getKieBaseModel(include);
                 CanonicalKieModule canonicalInclude = (CanonicalKieModule) includeModule;
                 canonicalInclude.setModuleClassLoader((ProjectClassLoader) kieProject.getClassLoader());
-                modelsForKBase.addAll(canonicalInclude.getModelForKBase(includeKBaseModel));
+                Collection<Model> includeModels = canonicalInclude.getModelForKBase(includeKBaseModel);
+                includedModelsRuleNames.putAll(collectModelsRuleNames(includeModels));
+                modelsForKBase.addAll(includeModels);
                 processes.addAll(findProcesses(includeModule, includeKBaseModel));
             }
+            validateUniqueRuleNames(mainModelsRuleNames, includedModelsRuleNames, buildContext, kBaseModel.getName());
         }
 
         CanonicalKiePackages canonicalKiePkgs = new KiePackagesBuilder(conf, getBuilderConfiguration( kBaseModel ), modelsForKBase).build();
@@ -334,6 +339,29 @@ public class CanonicalKieModule implements InternalKieModule {
         this.models.clear();
 
         return canonicalKiePackages;
+    }
+
+    private static void validateUniqueRuleNames(Map<String, Set<String>> mainModelsRuleNames, Map<String, Set<String>> includedModelsRuleNames, BuildContext buildContext, String kBaseModelName) {
+        for (String packageName : mainModelsRuleNames.keySet()) {
+            if (includedModelsRuleNames.containsKey(packageName)) {
+                Set<String> includedRuleNames = includedModelsRuleNames.get(packageName);
+                for (String ruleName : mainModelsRuleNames.get(packageName)) {
+                    if (includedRuleNames.contains(ruleName)) {
+                        String text = "Duplicate rule name: " + ruleName;
+                        buildContext.getMessages().addMessage(Message.Level.ERROR, KieModuleModelImpl.KMODULE_SRC_PATH, text).setKieBaseName(kBaseModelName);
+                        throw new PackageBuildException("Error while creating KiePackage" + buildContext.getMessages().filterMessages(Message.Level.ERROR));
+                    }
+                }
+            }
+        }
+    }
+
+    private static Map<String, Set<String>> collectModelsRuleNames(Collection<Model> modelsForKBase) {
+        Map<String, Set<String>> mainModelsRules = modelsForKBase.stream()
+                .collect(Collectors.toMap(Model::getPackageName, m -> m.getRules().stream()
+                        .map(org.drools.model.Rule::getName)
+                        .collect(Collectors.toSet())));
+        return mainModelsRules;
     }
 
     private KnowledgeBuilderConfiguration getBuilderConfiguration( KieBaseModelImpl kBaseModel ) {
