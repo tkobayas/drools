@@ -16,13 +16,13 @@
 
 package org.drools.modelcompiler.builder;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,7 +31,6 @@ import org.drools.compiler.builder.impl.KnowledgeBuilderImpl;
 import org.drools.compiler.builder.impl.TypeDeclarationFactory;
 import org.drools.compiler.compiler.PackageRegistry;
 import org.drools.compiler.compiler.ParserError;
-import org.drools.compiler.kie.builder.impl.AbstractKieModule;
 import org.drools.compiler.kie.builder.impl.BuildContext;
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.drools.compiler.kproject.models.KieBaseModelImpl;
@@ -48,21 +47,14 @@ import org.drools.core.definitions.InternalKnowledgePackage;
 import org.drools.core.rule.ImportDeclaration;
 import org.drools.core.rule.TypeDeclaration;
 import org.drools.core.util.StringUtils;
+import org.drools.model.Model;
 import org.drools.modelcompiler.CanonicalKieModule;
-import org.drools.modelcompiler.CanonicalKiePackages;
 import org.drools.modelcompiler.builder.errors.UnsupportedFeatureError;
 import org.drools.modelcompiler.builder.generator.DRLIdGenerator;
 import org.drools.modelcompiler.builder.generator.DrlxParseUtil;
 import org.drools.modelcompiler.builder.generator.declaredtype.POJOGenerator;
-import org.kie.api.KieBase;
-import org.kie.api.KieServices;
-import org.kie.api.builder.KieModule;
-import org.kie.api.builder.KieRepository;
 import org.kie.api.builder.ReleaseId;
 import org.kie.api.builder.model.KieBaseModel;
-import org.kie.api.definition.KiePackage;
-import org.kie.api.runtime.KieContainer;
-import org.kie.internal.builder.KnowledgeBuilder;
 import org.kie.internal.builder.ResultSeverity;
 
 import static com.github.javaparser.StaticJavaParser.parseImport;
@@ -84,7 +76,7 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
 
     private Map<String, CompositePackageDescr> compositePackagesMap;
 
-    private Map<String, List<String>> includedRuleNameMap = new HashMap<>();
+    private Map<String, Set<String>> includedRuleNameMap = new HashMap<>();
 
     public ModelBuilderImpl(Function<PackageModel, T> sourcesGenerator, KnowledgeBuilderConfigurationImpl configuration, ReleaseId releaseId, boolean oneClassPerRule) {
         super(configuration);
@@ -259,12 +251,9 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
                 continue;
             }
             CanonicalKieModule canonicalKieModule = (CanonicalKieModule) includeModule;
-            CanonicalKiePackages canonicalKiePackages = canonicalKieModule.getKiePackages((KieBaseModelImpl) kieBaseModel);
-            Collection<InternalKnowledgePackage> kiePackages = canonicalKiePackages.getKiePackages();
-            for (InternalKnowledgePackage kiePackage : kiePackages) {
-                kiePackage.getRules().forEach(rule -> {
-                    includedRuleNameMap.computeIfAbsent(kiePackage.getName(), k -> new ArrayList<>()).add(rule.getName());
-                });
+            Collection<Model> includeModels = canonicalKieModule.getModelForKBase((KieBaseModelImpl)kieBaseModel);
+            for (Model includeModel : includeModels) {
+                includeModel.getRules().forEach(rule -> includedRuleNameMap.computeIfAbsent(includeModel.getPackageName(), k -> new HashSet<>()).add(rule.getName()));
             }
         }
     }
@@ -349,15 +338,18 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
         super.validateUniqueRuleNames(packageDescr);
 
         // check for duplicated rule names in included kbase
-        List<String> ruleNames = includedRuleNameMap.computeIfAbsent(packageDescr.getNamespace(), k -> new ArrayList<>());
-        for (final RuleDescr ruleDescr : packageDescr.getRules()) {
-            if (ruleNames.contains(ruleDescr.getName())) {
-                addBuilderResult(new ParserError(ruleDescr.getResource(),
-                                                 "Duplicate rule name: " + ruleDescr.getName(),
-                                                 ruleDescr.getLine(),
-                                                 ruleDescr.getColumn(),
-                                                 packageDescr.getNamespace()));
+        if (includedRuleNameMap.containsKey(packageDescr.getNamespace())) {
+            Set<String> ruleNames = includedRuleNameMap.get(packageDescr.getNamespace());
+            for (final RuleDescr ruleDescr : packageDescr.getRules()) {
+                if (ruleNames.contains(ruleDescr.getName())) {
+                    addBuilderResult(new ParserError(ruleDescr.getResource(),
+                                                     "Duplicate rule name: " + ruleDescr.getName(),
+                                                     ruleDescr.getLine(),
+                                                     ruleDescr.getColumn(),
+                                                     packageDescr.getNamespace()));
+                }
             }
         }
+
     }
 }

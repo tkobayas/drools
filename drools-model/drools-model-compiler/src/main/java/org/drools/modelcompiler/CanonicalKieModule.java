@@ -455,7 +455,7 @@ public class CanonicalKieModule implements InternalKieModule {
         return ruleClassesNames;
     }
 
-    private Collection<Model> getModelForKBase(KieBaseModelImpl kBaseModel) {
+    public Collection<Model> getModelForKBase(KieBaseModelImpl kBaseModel) {
         Map<String, Model> modelsMap = getModels();
         if (kBaseModel.getPackages().isEmpty()) {
             return modelsMap.values();
