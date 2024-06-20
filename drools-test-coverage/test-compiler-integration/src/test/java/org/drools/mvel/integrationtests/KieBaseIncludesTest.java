@@ -20,12 +20,9 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
-import org.drools.core.util.FileManager;
 import org.drools.testcoverage.common.util.KieBaseTestConfiguration;
 import org.drools.testcoverage.common.util.KieUtil;
 import org.drools.testcoverage.common.util.TestParametersUtil;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,19 +43,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class KieBaseIncludesTest {
 
     private final KieBaseTestConfiguration kieBaseTestConfiguration;
-
-    private FileManager fileManager;
-
-    @Before
-    public void setUp() throws Exception {
-        this.fileManager = new FileManager();
-        this.fileManager.setUp();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        this.fileManager.tearDown();
-    }
 
     public KieBaseIncludesTest(final KieBaseTestConfiguration kieBaseTestConfiguration) {
         this.kieBaseTestConfiguration = kieBaseTestConfiguration;
