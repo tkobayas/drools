@@ -35,6 +35,7 @@ import org.kie.api.builder.ReleaseId;
 import org.kie.api.definition.KiePackage;
 import org.kie.api.definition.rule.Rule;
 import org.kie.api.runtime.KieContainer;
+import org.kie.api.runtime.KieSession;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -314,6 +315,121 @@ public class KieBaseIncludesTest {
                 .writePomXML(pomContentMain)
                 .write("src/main/resources/rules/rules.drl", drlMain)
                 .writeKModuleXML(kmoduleContentMain);
+
+        KieBuilder kieBuilderMain = KieUtil.getKieBuilderFromKieFileSystem(kieBaseTestConfiguration, kfsMain, false);
+        List<Message> messages = kieBuilderMain.getResults().getMessages(Message.Level.ERROR);
+
+        assertThat(messages).as("Duplication error should be reported")
+                .extracting(Message::getText).anyMatch(text -> text.contains("Duplicate rule name"));
+    }
+
+    /**
+     * One KieBase that includes another KieBase from the same KJAR. Not duplicate names.
+     */
+    @Test
+    public void kieBaseIncludesSameKJar() {
+
+        String pomContent = "<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n" +
+                "<modelVersion>4.0.0</modelVersion>\n" +
+                "<groupId>org.kie</groupId>\n" +
+                "<artifactId>rules-main-sub</artifactId>\n" +
+                "<version>1.0.0</version>\n" +
+                "<packaging>jar</packaging>\n" +
+                "</project>\n";
+
+        String kmoduleContent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<kmodule xmlns=\"http://jboss.org/kie/6.0.0/kmodule\">\n" +
+                "<kbase name=\"kbaseSub\" equalsBehavior=\"equality\" default=\"false\" packages=\"rules.sub\">\n" +
+                "</kbase>\n" +
+                "<kbase name=\"kbaseMain\" equalsBehavior=\"equality\" default=\"true\" packages=\"rules.main\" includes=\"kbaseSub\">\n" +
+                "<ksession name=\"ksessionMain\" default=\"true\" type=\"stateful\"/>\n" +
+                "</kbase>\n" +
+                "</kmodule>";
+
+        String drlMain = "package rules.main\n" +
+                "\n" +
+                "rule \"RuleA\"\n" +
+                "when\n" +
+                "  $s : String()\n" +
+                "then\n" +
+                "  System.out.println(\"Rule in KieBaseMain\");\n" +
+                "end";
+
+        String drlSub = "package rules.sub\n" +
+                "\n" +
+                "rule \"RuleB\"\n" +
+                "when\n" +
+                "  $s : String()\n" +
+                "then\n" +
+                "  System.out.println(\"Rule in KieBaseSub\");\n" +
+                "end";
+
+        KieServices ks = KieServices.Factory.get();
+
+        KieFileSystem kfsMain = ks.newKieFileSystem()
+                .writePomXML(pomContent)
+                .write("src/main/resources/rules/main/ruleMain.drl", drlMain)
+                .write("src/main/resources/rules/sub/ruleSub.drl", drlSub)
+                .writeKModuleXML(kmoduleContent);
+
+        KieUtil.getKieBuilderFromKieFileSystem(kieBaseTestConfiguration, kfsMain, true);
+        ReleaseId releaseId = ks.newReleaseId("org.kie", "rules-main-sub", "1.0.0");
+        KieContainer kieContainer = ks.newKieContainer(releaseId);
+        KieSession kieSession = kieContainer.newKieSession("ksessionMain");
+        kieSession.insert("test");
+        int fired = kieSession.fireAllRules();
+        assertThat(fired).as("fire rules in main and sub").isEqualTo(2);
+        kieSession.dispose();
+    }
+
+    /**
+     * One KieBase that includes another KieBase from the same KJAR. Duplicate rule names.
+     */
+    @Test
+    public void kieBaseIncludesSameKJarRuleNames_shouldReportError() {
+
+        String pomContent = "<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n" +
+                "<modelVersion>4.0.0</modelVersion>\n" +
+                "<groupId>org.kie</groupId>\n" +
+                "<artifactId>rules-main-sub</artifactId>\n" +
+                "<version>1.0.0</version>\n" +
+                "<packaging>jar</packaging>\n" +
+                "</project>\n";
+
+        String kmoduleContent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<kmodule xmlns=\"http://jboss.org/kie/6.0.0/kmodule\">\n" +
+                "<kbase name=\"kbaseSub\" equalsBehavior=\"equality\" default=\"false\" packages=\"rules\">\n" +
+                "</kbase>\n" +
+                "<kbase name=\"kbaseMain\" equalsBehavior=\"equality\" default=\"true\" packages=\"rules\" includes=\"kbaseSub\">\n" +
+                "<ksession name=\"ksessionMain\" default=\"true\" type=\"stateful\"/>\n" +
+                "</kbase>\n" +
+                "</kmodule>";
+
+        String drlMain = "package rules\n" +
+                "\n" +
+                "rule \"RuleA\"\n" +
+                "when\n" +
+                "  $s : String()\n" +
+                "then\n" +
+                "  System.out.println(\"Rule in KieBaseMain\");\n" +
+                "end";
+
+        String drlSub = "package rules\n" + // same package, same rule name
+                "\n" +
+                "rule \"RuleA\"\n" +
+                "when\n" +
+                "  $s : String()\n" +
+                "then\n" +
+                "  System.out.println(\"Rule in KieBaseSub\");\n" +
+                "end";
+
+        KieServices ks = KieServices.Factory.get();
+
+        KieFileSystem kfsMain = ks.newKieFileSystem()
+                .writePomXML(pomContent)
+                .write("src/main/resources/rules/main/ruleMain.drl", drlMain)
+                .write("src/main/resources/rules/sub/ruleSub.drl", drlSub)
+                .writeKModuleXML(kmoduleContent);
 
         KieBuilder kieBuilderMain = KieUtil.getKieBuilderFromKieFileSystem(kieBaseTestConfiguration, kfsMain, false);
         List<Message> messages = kieBuilderMain.getResults().getMessages(Message.Level.ERROR);

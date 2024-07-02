@@ -247,13 +247,12 @@ public class ModelBuilderImpl<T extends PackageSources> extends KnowledgeBuilder
         for (Map.Entry<KieBaseModel, InternalKieModule> entry : includeModules.entrySet()) {
             KieBaseModel kieBaseModel = entry.getKey();
             InternalKieModule includeModule = entry.getValue();
-            if (!(includeModule instanceof CanonicalKieModule)) {
-                continue;
-            }
-            CanonicalKieModule canonicalKieModule = (CanonicalKieModule) includeModule;
-            Collection<Model> includeModels = canonicalKieModule.getModelForKBase((KieBaseModelImpl)kieBaseModel);
-            for (Model includeModel : includeModels) {
-                includeModel.getRules().forEach(rule -> includedRuleNameMap.computeIfAbsent(includeModel.getPackageName(), k -> new HashSet<>()).add(rule.getName()));
+            if ((includeModule instanceof CanonicalKieModule) && ((CanonicalKieModule) includeModule).hasModelFile()) {
+                CanonicalKieModule canonicalKieModule = (CanonicalKieModule) includeModule;
+                Collection<Model> includeModels = canonicalKieModule.getModelForKBase((KieBaseModelImpl)kieBaseModel);
+                for (Model includeModel : includeModels) {
+                    includeModel.getRules().forEach(rule -> includedRuleNameMap.computeIfAbsent(includeModel.getPackageName(), k -> new HashSet<>()).add(rule.getName()));
+                }
             }
         }
     }
