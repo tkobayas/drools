@@ -473,6 +473,11 @@ public class CanonicalKieModule implements InternalKieModule {
         return models;
     }
 
+    // This method indicates if the kjar was already compiled with the executable model
+    public boolean hasModelFile() {
+        return resourceFileExists(getModelFileWithGAV(internalKieModule.getReleaseId()));
+    }
+
     private Collection<String> findRuleClassesNames() {
         ReleaseId releaseId = internalKieModule.getReleaseId();
         String modelFiles = readExistingResourceWithName(getModelFileWithGAV(releaseId));
