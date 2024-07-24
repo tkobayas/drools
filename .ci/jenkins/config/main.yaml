@@ -4,33 +4,22 @@ ecosystem:
   - name: drools
     regexs:
     - drools.*
-    - incubator-kie-drools.*
-  - name: kie-benchmarks
-    ignore_release: true
-    regexs:
-    - kie-benchmarks.*
-    - incubator-kie-benchmarks.*
 git:
   branches:
-  - name: main
+  - name: jenkins-test
     main_branch: true
-  - name: 10.0.x
-    seed:
-      branch: seed-drools-10.0.x
+
 seed:
   config_file:
     git:
-      repository: incubator-kie-drools
+      repository: drools
       author:
-        name: apache
-        credentials_id: ASF_Cloudbees_Jenkins_ci-builds
-        push:
-          credentials_id: 84811880-2025-45b6-a44c-2f33bef30ad2
-      branch: main
+        name: tkobayas
+        credentials_id: tkobayas
+      branch: jenkins-test
     path: .ci/jenkins/config/branch.yaml
-  jenkinsfile: dsl/seed/jenkinsfiles/Jenkinsfile.seed.branch
+  jenkinsfile: dsl/seed/jenkinsfiles/Jenkinsfile.test
 jenkins:
-  email_creds_id: DROOLS_CI_NOTIFICATION_EMAILS
   agent:
     docker:
       builder:
