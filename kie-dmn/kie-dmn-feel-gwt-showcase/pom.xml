@@ -19,8 +19,6 @@
     <it.tests>**/*IT.java</it.tests>
     <!-- Version 2.0.1.Final which is coming from kie-parent is not compatible with validation components -->
     <version.javax.validation>1.0.0.GA</version.javax.validation>
-    <!-- ERRAI webapp compatible -->
-    <version.com.google.guava>29.0-jre</version.com.google.guava>
   </properties>
 
   <dependencies>
