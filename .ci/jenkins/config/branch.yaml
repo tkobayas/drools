@@ -18,12 +18,12 @@ job_types:
 environments:
   default:
     env_vars:
-      DROOLS_BUILD_MVN_OPTS: -Dfull
+      DROOLS_BUILD_MVN_OPTS: -Dproductized
   native:
     env_vars:
       NATIVE: true
       BUILD_MVN_OPTS_CURRENT: -Dnative -Dquarkus.native.container-build=true
-      DROOLS_BUILD_MVN_OPTS: -Dfull
+      DROOLS_BUILD_MVN_OPTS: -Dproductized
       ADDITIONAL_TIMEOUT: 720
     ids:
     - native
@@ -31,7 +31,7 @@ environments:
     enabled: false
     env_vars:
       QUARKUS_BRANCH: main
-      DROOLS_BUILD_MVN_OPTS: -Dfull
+      DROOLS_BUILD_MVN_OPTS: -Dproductized
     ids:
     - quarkus
   sonarcloud:
@@ -39,7 +39,7 @@ environments:
     auto_generation: false
     env_vars:
       ENABLE_SONARCLOUD: true
-      DROOLS_BUILD_MVN_OPTS: -Dfull
+      DROOLS_BUILD_MVN_OPTS: -Dproductized
     ids:
     - sonarcloud
     - coverage
