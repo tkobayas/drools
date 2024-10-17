@@ -25,7 +25,7 @@ default:
       mvn clean install -Dquickly ${{ env.BUILD_MVN_OPTS }} ${{ env.BUILD_MVN_OPTS_UPSTREAM }}
     after:
       current: |
-        docker system prune -f
+        bash -c "if [ -n \"$(docker images -f dangling=true -q)\" ]; then docker rmi $(docker images -f dangling=true -q); else echo 'No dangling images to remove.'; fi"
 
 build:
   - project: kiegroup/drools
