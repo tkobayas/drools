@@ -46,7 +46,7 @@ jobs:
           annotations-prefix: ${{ runner.os }}-${{ matrix.java-version }}/${{ matrix.maven-version }}
           github-token: "${{ secrets.GITHUB_TOKEN }}"
         env:
-          BUILD_MVN_OPTS: "-Dfile.encoding=UTF-8"
+          BUILD_MVN_OPTS: -Dfile.encoding=UTF-8
       - name: Surefire Report
         uses: kiegroup/kie-ci/.ci/actions/surefire-report@main
         if: ${{ always() }}
