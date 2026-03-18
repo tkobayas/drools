@@ -30,8 +30,7 @@ jobs:
           - job_name: serverless-workflow-examples
             repository: kogito-examples
             env_KOGITO_EXAMPLES_SUBFOLDER_POM: serverless-workflow-examples/
-            env:
-              BUILD_MVN_OPTS: " -Dproductized"
+        env_BUILD_MVN_OPTS: " -Dproductized"
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.job_name }} (${{ matrix.os }} / Java-${{ matrix.java-version }} / Maven-${{ matrix.maven-version }})
