@@ -16,6 +16,8 @@ jobs:
       group: pr-${{ matrix.job_name }}_${{ matrix.os }}_${{ matrix.java-version }}_${{ matrix.maven-version }}_${{ github.head_ref }}
       cancel-in-progress: true
     timeout-minutes: 180
+    env:
+      BUILD_MVN_OPTS: " -Dproductized"
     strategy:
       matrix:
         job_name: [kogito-runtimes, kogito-apps, serverless-workflow-examples]
@@ -30,7 +32,6 @@ jobs:
           - job_name: serverless-workflow-examples
             repository: kogito-examples
             env_KOGITO_EXAMPLES_SUBFOLDER_POM: serverless-workflow-examples/
-        env_BUILD_MVN_OPTS: " -Dproductized"
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.job_name }} (${{ matrix.os }} / Java-${{ matrix.java-version }} / Maven-${{ matrix.maven-version }})
@@ -55,7 +56,6 @@ jobs:
           starting-project: kiegroup/${{ matrix.repository }}
           github-token: "${{ secrets.GITHUB_TOKEN }}"
         env:
-          BUILD_MVN_OPTS: ${{ matrix.env_BUILD_MVN_OPTS }}
           KOGITO_EXAMPLES_SUBFOLDER_POM: ${{ matrix.env_KOGITO_EXAMPLES_SUBFOLDER_POM }}
       - name: Surefire Report
         uses: kiegroup/kie-ci/.ci/actions/surefire-report@main
