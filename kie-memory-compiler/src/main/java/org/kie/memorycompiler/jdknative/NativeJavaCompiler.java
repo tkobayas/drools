@@ -47,6 +47,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,7 @@ public class NativeJavaCompiler extends AbstractJavaCompiler {
 
     private JavaCompilerFinder javaCompilerFinder;
     private StandardJavaFileManager cachedFileManager;
+    private final Map<String, List<JavaFileObject>> externalJarCache = new HashMap<>();
 
 	public JavaCompilerSettings createDefaultSettings() {
         return new JavaCompilerSettings();
@@ -103,7 +105,7 @@ public class NativeJavaCompiler extends AbstractJavaCompiler {
         JavaCompiler compiler = getJavaCompiler();
         StandardJavaFileManager jFileManager = getOrCreateFileManager(compiler, pSettings);
 
-        try (MemoryFileManager fileManager = new MemoryFileManager( jFileManager, pClassLoader )) {
+        try (MemoryFileManager fileManager = new MemoryFileManager( jFileManager, pClassLoader, externalJarCache )) {
             final List<JavaFileObject> units = new ArrayList<>();
             for (final String sourcePath : pResourcePaths) {
                 units.add( new CompilationUnit( PortablePath.of(sourcePath), pReader ) );
@@ -310,10 +312,12 @@ public class NativeJavaCompiler extends AbstractJavaCompiler {
     private static class MemoryFileManager extends ForwardingJavaFileManager<JavaFileManager> {
         private final List<CompilationOutput> outputs = new ArrayList<>();
         private final ClassLoader classLoader;
+        private final Map<String, List<JavaFileObject>> externalJarCache;
 
-        MemoryFileManager(JavaFileManager fileManager, ClassLoader classLoader) {
+        MemoryFileManager(JavaFileManager fileManager, ClassLoader classLoader, Map<String, List<JavaFileObject>> externalJarCache) {
             super(fileManager);
             this.classLoader = classLoader;
+            this.externalJarCache = externalJarCache;
         }
 
         @Override
@@ -359,6 +363,10 @@ public class NativeJavaCompiler extends AbstractJavaCompiler {
         // and is an optimization of the solution suggested in the following post
         // http://atamur.blogspot.it/2009/10/using-built-in-javacompiler-with-custom.html
         private List<JavaFileObject> findClassesInExternalJars(String packageName) {
+            List<JavaFileObject> cached = externalJarCache.get(packageName);
+            if (cached != null) {
+                return cached;
+            }
             try {
                 Enumeration<URL> urlEnumeration = classLoader.getResources(packageName.replace('.', '/'));
                 List<JavaFileObject> result = new ArrayList<>();
@@ -375,6 +383,7 @@ public class NativeJavaCompiler extends AbstractJavaCompiler {
                         }
                     }
                 }
+                externalJarCache.put(packageName, result);
                 return result;
             } catch (IOException e) {
                 return Collections.emptyList();
