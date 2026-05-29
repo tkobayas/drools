@@ -43,6 +43,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -65,11 +66,12 @@ import org.kie.memorycompiler.resources.ResourceStore;
 public class NativeJavaCompiler extends AbstractJavaCompiler {
 
     private JavaCompilerFinder javaCompilerFinder;
+    private StandardJavaFileManager cachedFileManager;
 
 	public JavaCompilerSettings createDefaultSettings() {
         return new JavaCompilerSettings();
     }
-    
+
     public NativeJavaCompiler() {
     	this(new NativeJavaCompilerFinder());
     }
@@ -77,6 +79,19 @@ public class NativeJavaCompiler extends AbstractJavaCompiler {
     NativeJavaCompiler(JavaCompilerFinder javaCompilerFinder) {
 		this.javaCompilerFinder = javaCompilerFinder;
 	}
+
+    private StandardJavaFileManager getOrCreateFileManager(JavaCompiler compiler, JavaCompilerSettings pSettings) {
+        if (cachedFileManager == null) {
+            cachedFileManager = compiler.getStandardFileManager(null, null, StandardCharsets.UTF_8);
+            try {
+                cachedFileManager.setLocation( StandardLocation.CLASS_PATH, pSettings.getClasspathLocations() );
+                cachedFileManager.setLocation( StandardLocation.CLASS_OUTPUT, Collections.singletonList(new File("target/classes")) );
+            } catch (IOException e) {
+                // ignore if cannot set the classpath
+            }
+        }
+        return cachedFileManager;
+    }
 
 	@Override
     public CompilationResult compile( String[] pResourcePaths,
@@ -86,41 +101,33 @@ public class NativeJavaCompiler extends AbstractJavaCompiler {
                                       JavaCompilerSettings pSettings) {
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
         JavaCompiler compiler = getJavaCompiler();
+        StandardJavaFileManager jFileManager = getOrCreateFileManager(compiler, pSettings);
 
-        try (StandardJavaFileManager jFileManager = compiler.getStandardFileManager(diagnostics, null, Charset.forName(pSettings.getSourceEncoding()))) {
-            try {
-                jFileManager.setLocation( StandardLocation.CLASS_PATH, pSettings.getClasspathLocations() );
-                jFileManager.setLocation( StandardLocation.CLASS_OUTPUT, Collections.singletonList(new File("target/classes")) );
-            } catch (IOException e) {
-                // ignore if cannot set the classpath
+        try (MemoryFileManager fileManager = new MemoryFileManager( jFileManager, pClassLoader )) {
+            final List<JavaFileObject> units = new ArrayList<>();
+            for (final String sourcePath : pResourcePaths) {
+                units.add( new CompilationUnit( PortablePath.of(sourcePath), pReader ) );
             }
 
-            try (MemoryFileManager fileManager = new MemoryFileManager( jFileManager, pClassLoader )) {
-                final List<JavaFileObject> units = new ArrayList<>();
-                for (final String sourcePath : pResourcePaths) {
-                    units.add( new CompilationUnit( PortablePath.of(sourcePath), pReader ) );
+            Iterable<String> options = new NativeJavaCompilerSettings( pSettings ).toOptionsList();
+
+            if ( compiler.getTask( null, fileManager, diagnostics, options, null, units ).call() ) {
+                for (CompilationOutput compilationOutput : fileManager.getOutputs()) {
+                    pStore.write( compilationOutput.getBinaryName().replace( '.', '/' ) + ".class", compilationOutput.toByteArray() );
                 }
-
-                Iterable<String> options = new NativeJavaCompilerSettings( pSettings ).toOptionsList();
-
-                if ( compiler.getTask( null, fileManager, diagnostics, options, null, units ).call() ) {
-                    for (CompilationOutput compilationOutput : fileManager.getOutputs()) {
-                        pStore.write( compilationOutput.getBinaryName().replace( '.', '/' ) + ".class", compilationOutput.toByteArray() );
-                    }
-                    return new CompilationResult( new CompilationProblem[0] );
-                }
+                return new CompilationResult( new CompilationProblem[0] );
             }
-
-            List<Diagnostic<? extends JavaFileObject>> problems = diagnostics.getDiagnostics();
-            CompilationProblem[] result = new CompilationProblem[problems.size()];
-            for (int i = 0; i < problems.size(); i++) {
-                result[i] = new NativeCompilationProblem( ( Diagnostic<JavaFileObject> ) problems.get( i ) );
-            }
-
-            return new CompilationResult( result );
         } catch (IOException e) {
             throw new RuntimeException( e );
         }
+
+        List<Diagnostic<? extends JavaFileObject>> problems = diagnostics.getDiagnostics();
+        CompilationProblem[] result = new CompilationProblem[problems.size()];
+        for (int i = 0; i < problems.size(); i++) {
+            result[i] = new NativeCompilationProblem( ( Diagnostic<JavaFileObject> ) problems.get( i ) );
+        }
+
+        return new CompilationResult( result );
     }
 
     private JavaCompiler getJavaCompiler() {
