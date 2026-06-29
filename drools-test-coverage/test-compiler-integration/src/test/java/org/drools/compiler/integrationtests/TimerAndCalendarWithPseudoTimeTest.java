@@ -65,6 +65,8 @@ import static org.assertj.core.api.Assertions.fail;
 
 public class TimerAndCalendarWithPseudoTimeTest {
 
+    // test
+
     public static Stream<KieBaseTestConfiguration> parameters() {
         return TestParametersUtil2.getKieBaseStreamConfigurations(true).stream();
     }

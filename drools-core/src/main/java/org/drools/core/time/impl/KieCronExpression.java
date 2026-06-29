@@ -189,6 +189,8 @@ import java.util.TreeSet;
  */
 public class KieCronExpression implements Serializable {
 
+    // test
+
     private static final long serialVersionUID = 510L;
 
     protected static final int YEAR_TO_GIVEUP_SCHEDULING_AT = 2299;
