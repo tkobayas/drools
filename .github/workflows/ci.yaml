@@ -33,7 +33,7 @@ concurrency:
 jobs:
 
   build:
-    if: github.event.action != 'closed'
+    if: false
     name: '${{ matrix.os }}, Java ${{ matrix.java }}'
     runs-on: ${{ matrix.os }}
     strategy:
