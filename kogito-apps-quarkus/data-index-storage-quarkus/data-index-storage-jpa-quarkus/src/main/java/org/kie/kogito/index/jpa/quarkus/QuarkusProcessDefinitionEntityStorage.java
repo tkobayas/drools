@@ -19,16 +19,19 @@
 package org.kie.kogito.index.jpa.quarkus;
 
 import java.util.Collections;
+import java.util.function.Supplier;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kie.kogito.index.jpa.storage.JsonPredicateBuilder;
 import org.kie.kogito.index.jpa.storage.ProcessDefinitionEntityStorage;
+import org.kie.kogito.index.model.ProcessDefinition;
 import org.kie.kogito.process.Processes;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 
 @ApplicationScoped
 public class QuarkusProcessDefinitionEntityStorage extends ProcessDefinitionEntityStorage {
@@ -37,6 +40,12 @@ public class QuarkusProcessDefinitionEntityStorage extends ProcessDefinitionEnti
     public QuarkusProcessDefinitionEntityStorage(EntityManager em, Instance<JsonPredicateBuilder> predicateBuilder, Instance<Processes> processesInstance,
             @ConfigProperty(name = "kogito.persistence.data-isolation.enabled", defaultValue = "false") Boolean dataIsolationEnabled) {
         super(em, predicateBuilder, dataIsolationEnabled ? processesInstance : Collections.emptyList());
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    protected ProcessDefinition wrapInTransaction(Supplier<ProcessDefinition> supplier) {
+        return supplier.get();
     }
 
 }
