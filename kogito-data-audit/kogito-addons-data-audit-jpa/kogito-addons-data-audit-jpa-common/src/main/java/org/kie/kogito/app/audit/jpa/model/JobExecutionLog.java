@@ -37,7 +37,10 @@ import jakarta.persistence.TemporalType;
         indexes = {
                 @Index(name = "ix_jel_pid", columnList = "process_instance_id"),
                 @Index(name = "ix_jel_jid", columnList = "job_id"),
-                @Index(name = "ix_jel_status", columnList = "status")
+                @Index(name = "ix_jel_status", columnList = "status"),
+                @Index(name = "ix_jel_procid", columnList = "process_id"),
+                @Index(name = "ix_jel_pid_pver", columnList = "process_id, process_version"),
+                @Index(name = "ix_jel_rpid_rpver", columnList = "root_process_id, root_process_version")
         })
 @SequenceGenerator(name = "jobExecutionHistoryIdSeq", sequenceName = "JOB_EXECUTION_HISTORY_ID_SEQ")
 public class JobExecutionLog {
@@ -84,6 +87,18 @@ public class JobExecutionLog {
     @Column(name = "event_date")
     @Temporal(TemporalType.TIMESTAMP)
     private Date eventDate;
+
+    @Column(name = "process_id")
+    private String processId;
+
+    @Column(name = "process_version")
+    private String processVersion;
+
+    @Column(name = "root_process_id")
+    private String rootProcessId;
+
+    @Column(name = "root_process_version")
+    private String rootProcessVersion;
 
     @Column(name = "exception_message")
     private String exceptionMessage;
@@ -193,6 +208,38 @@ public class JobExecutionLog {
 
     public void setEventDate(Timestamp eventDate) {
         this.eventDate = eventDate;
+    }
+
+    public String getProcessId() {
+        return processId;
+    }
+
+    public void setProcessId(String processId) {
+        this.processId = processId;
+    }
+
+    public String getProcessVersion() {
+        return processVersion;
+    }
+
+    public void setProcessVersion(String processVersion) {
+        this.processVersion = processVersion;
+    }
+
+    public String getRootProcessId() {
+        return rootProcessId;
+    }
+
+    public void setRootProcessId(String rootProcessId) {
+        this.rootProcessId = rootProcessId;
+    }
+
+    public String getRootProcessVersion() {
+        return rootProcessVersion;
+    }
+
+    public void setRootProcessVersion(String rootProcessVersion) {
+        this.rootProcessVersion = rootProcessVersion;
     }
 
     public String getExceptionDetails() {

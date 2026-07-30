@@ -79,28 +79,9 @@ public class DataAuditTestUtils {
             String processId, String procesInstanceId, Long repeatInterval, Integer repeatLimit, String rootProcessId, String rootProcessInstanceId,
             JobStatus state, Integer executionCounter, String exceptionMessage, String exceptionDetails) throws Exception {
 
-        ScheduledJob job = new ScheduledJob();
-        job.setId(jobId);
-        job.setNodeInstanceId(nodeInstanceId);
-        job.setCallbackEndpoint("https://callback");
-        job.setPriority(priority);
-        job.setProcessId(processId);
-        job.setProcessInstanceId(procesInstanceId);
-        job.setRepeatInterval(repeatInterval);
-        job.setRepeatLimit(repeatLimit);
-        job.setRootProcessId(rootProcessId);
-        job.setRootProcessInstanceId(rootProcessInstanceId);
-
-        job = ScheduledJob.builder()
-                .job(job)
-                .status(state)
-                .executionCounter(executionCounter)
-                .retries(executionCounter) // Set retries to match executionCounter for testing
-                .scheduledId("my scheduler")
-                .expirationTime(ZonedDateTime.now())
-                .exceptionMessage(exceptionMessage)
-                .exceptionDetails(exceptionDetails)
-                .build();
+        ScheduledJob job = buildScheduledJob(jobId, nodeInstanceId, priority, processId, procesInstanceId,
+                repeatInterval, repeatLimit, rootProcessId, rootProcessInstanceId,
+                state, executionCounter, exceptionMessage, exceptionDetails);
 
         return JobInstanceDataEvent.builder()
                 .type("JobEvent")
@@ -113,6 +94,58 @@ public class DataAuditTestUtils {
                 .kogitoRootProcessId(rootProcessId)
                 .kogitoRootProcessVersion(null)
                 .kogitoIdentity("identity")
+                .build();
+    }
+
+    public static JobInstanceDataEvent newJobEventWithVersion(String jobId, String nodeInstanceId, Integer priority,
+            String processId, String processVersion, String processInstanceId, Long repeatInterval, Integer repeatLimit,
+            String rootProcessId, String rootProcessVersion, String rootProcessInstanceId,
+            JobStatus state, Integer executionCounter) throws Exception {
+
+        ScheduledJob job = buildScheduledJob(jobId, nodeInstanceId, priority, processId, processInstanceId,
+                repeatInterval, repeatLimit, rootProcessId, rootProcessInstanceId,
+                state, executionCounter, null, null);
+
+        return JobInstanceDataEvent.builder()
+                .type("JobEvent")
+                .source(toURIEndpoint(processId))
+                .data(new ObjectMapper().registerModule(new JavaTimeModule()).writeValueAsBytes(job))
+                .kogitoProcessInstanceId(processInstanceId)
+                .kogitoRootProcessInstanceId(rootProcessInstanceId)
+                .kogitoProcessId(processId)
+                .kogitoProcessVersion(processVersion)
+                .kogitoRootProcessId(rootProcessId)
+                .kogitoRootProcessVersion(rootProcessVersion)
+                .kogitoIdentity("identity")
+                .build();
+    }
+
+    private static ScheduledJob buildScheduledJob(String jobId, String nodeInstanceId, Integer priority,
+            String processId, String processInstanceId, Long repeatInterval, Integer repeatLimit,
+            String rootProcessId, String rootProcessInstanceId,
+            JobStatus state, Integer executionCounter, String exceptionMessage, String exceptionDetails) {
+
+        ScheduledJob base = new ScheduledJob();
+        base.setId(jobId);
+        base.setNodeInstanceId(nodeInstanceId);
+        base.setCallbackEndpoint("https://callback");
+        base.setPriority(priority);
+        base.setProcessId(processId);
+        base.setProcessInstanceId(processInstanceId);
+        base.setRepeatInterval(repeatInterval);
+        base.setRepeatLimit(repeatLimit);
+        base.setRootProcessId(rootProcessId);
+        base.setRootProcessInstanceId(rootProcessInstanceId);
+
+        return ScheduledJob.builder()
+                .job(base)
+                .status(state)
+                .executionCounter(executionCounter) // Set retries to match executionCounter for testing
+                .retries(executionCounter)
+                .scheduledId("my scheduler")
+                .expirationTime(ZonedDateTime.now())
+                .exceptionMessage(exceptionMessage)
+                .exceptionDetails(exceptionDetails)
                 .build();
     }
 
@@ -153,6 +186,50 @@ public class DataAuditTestUtils {
 
         String processVersion = "1.0";
         String rootProcessVersion = "2.0";
+        String processType = "BPMN2";
+        ProcessInstanceStateEventBody body = ProcessInstanceStateEventBody.create()
+                .processInstanceId(processInstanceId)
+                .parentInstanceId(parentProcessInstanceId)
+                .rootProcessInstanceId(rootProcessInstanceId)
+                .rootProcessId(rootProcessId)
+                .processId(processId)
+                .processType(processType)
+                .processVersion(processVersion)
+                .processName(UUID.randomUUID().toString())
+                .eventDate(new Date())
+                .state(status)
+                .businessKey("BusinessKey" + processInstanceId)
+                .roles("admin", "role2")
+                .eventUser(identity)
+                .eventType(eventType)
+                .build();
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put(ProcessInstanceEventMetadata.PROCESS_INSTANCE_ID_META_DATA, processInstanceId);
+        metadata.put(ProcessInstanceEventMetadata.PROCESS_VERSION_META_DATA, processVersion);
+        metadata.put(ProcessInstanceEventMetadata.PROCESS_ID_META_DATA, processId);
+        metadata.put(ProcessInstanceEventMetadata.PROCESS_INSTANCE_STATE_META_DATA, String.valueOf(status));
+        metadata.put(ProcessInstanceEventMetadata.PROCESS_TYPE_META_DATA, processType);
+        metadata.put(ProcessInstanceEventMetadata.PARENT_PROCESS_INSTANCE_ID_META_DATA, parentProcessInstanceId);
+        metadata.put(ProcessInstanceEventMetadata.ROOT_PROCESS_ID_META_DATA, rootProcessId);
+        metadata.put(ProcessInstanceEventMetadata.ROOT_PROCESS_VERSION_META_DATA, rootProcessVersion);
+        metadata.put(ProcessInstanceEventMetadata.ROOT_PROCESS_INSTANCE_ID_META_DATA, rootProcessInstanceId);
+
+        return ProcessInstanceStateDataEvent.builder()
+                .source(toURIEndpoint(processId))
+                .kogitoAddons(ADDONS)
+                .kogitoIdentity(identity)
+                .metaData(metadata)
+                .data(body)
+                .kogitoBusinessKey(body.getBusinessKey())
+                .build();
+    }
+
+    public static ProcessInstanceStateDataEvent newProcessInstanceStateEventWithVersion(
+            String processId, String processVersion, String processInstanceId, Integer status,
+            String rootProcessInstanceId, String rootProcessId, String rootProcessVersion,
+            String parentProcessInstanceId, String identity, int eventType) {
+
         String processType = "BPMN2";
         ProcessInstanceStateEventBody body = ProcessInstanceStateEventBody.create()
                 .processInstanceId(processInstanceId)
@@ -354,6 +431,50 @@ public class DataAuditTestUtils {
                 .source(toURIEndpoint(processId))
                 .kogitoAddons(ADDONS)
                 .kogitoIdentity(eventUser)
+                .metaData(metadata)
+                .data(body)
+                .kogitoBusinessKey(UUID.randomUUID().toString())
+                .build();
+    }
+
+    public static UserTaskInstanceStateDataEvent newUserTaskInstanceStateEventWithProcessId(
+            String processId, String processVersion, String eventUser, String userTaskDefinitionId,
+            String userTaskInstanceId, String userTaskName, String eventType, String state,
+            String actualOwner, String processInstanceId) {
+
+        String processType = "BPMN2";
+
+        UserTaskInstanceStateEventBody body = UserTaskInstanceStateEventBody.create()
+                .eventUser(eventUser)
+                .eventDate(new Date())
+                .userTaskDefinitionId(userTaskDefinitionId)
+                .userTaskInstanceId(userTaskInstanceId)
+                .userTaskName(userTaskName)
+                .eventType(eventType)
+                .state(state)
+                .actualOwner(actualOwner)
+                .processInstanceId(processInstanceId)
+                .build();
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put(ProcessInstanceEventMetadata.PROCESS_INSTANCE_ID_META_DATA, processInstanceId);
+        metadata.put(ProcessInstanceEventMetadata.PROCESS_VERSION_META_DATA, processVersion);
+        metadata.put(ProcessInstanceEventMetadata.PROCESS_ID_META_DATA, processId);
+        metadata.put(ProcessInstanceEventMetadata.PROCESS_INSTANCE_STATE_META_DATA, String.valueOf(ProcessInstance.STATE_ACTIVE));
+        metadata.put(ProcessInstanceEventMetadata.PROCESS_TYPE_META_DATA, processType);
+        metadata.put(ProcessInstanceEventMetadata.PARENT_PROCESS_INSTANCE_ID_META_DATA, null);
+        metadata.put(ProcessInstanceEventMetadata.ROOT_PROCESS_ID_META_DATA, null);
+        metadata.put(ProcessInstanceEventMetadata.ROOT_PROCESS_VERSION_META_DATA, null);
+        metadata.put(ProcessInstanceEventMetadata.ROOT_PROCESS_INSTANCE_ID_META_DATA, null);
+        metadata.put(UserTaskInstanceEventMetadata.USER_TASK_INSTANCE_ID_META_DATA, userTaskInstanceId);
+        metadata.put(UserTaskInstanceEventMetadata.USER_TASK_INSTANCE_STATE_META_DATA, state);
+
+        return UserTaskInstanceStateDataEvent.builder()
+                .source(toURIEndpoint(processId))
+                .kogitoAddons(ADDONS)
+                .kogitoIdentity(eventUser)
+                .kogitoProcessId(processId)
+                .kogitoProcessVersion(processVersion)
                 .metaData(metadata)
                 .data(body)
                 .kogitoBusinessKey(UUID.randomUUID().toString())

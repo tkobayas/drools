@@ -91,6 +91,7 @@ public class JPADataAuditStore implements DataAuditStore {
         ProcessInstanceStateLog log = new ProcessInstanceStateLog();
 
         setProcessCommonAttributes(log, event);
+        log.setRootProcessVersion(getOnlyIfFilled(event::getKogitoRootProcessVersion));
         log.setState(String.valueOf(event.getData().getState()));
         log.setRoles(event.getData().getRoles());
         log.setSlaDueDate(event.getData().getSlaDueDate());
@@ -313,9 +314,12 @@ public class JPADataAuditStore implements DataAuditStore {
         log.setName(event.getData().getUserTaskName());
         log.setDescription(event.getData().getUserTaskDescription());
         log.setState(event.getData().getState());
-
         log.setEventType(event.getData().getEventType());
         log.setEventUser(event.getData().getEventUser());
+        log.setProcessId(event.getKogitoProcessId());
+        log.setProcessVersion(event.getKogitoProcessVersion());
+        log.setRootProcessId(getOnlyIfFilled(event::getKogitoRootProcessId));
+        log.setRootProcessVersion(getOnlyIfFilled(event::getKogitoRootProcessVersion));
 
         EntityManager entityManager = context.getContext();
         entityManager.persist(log);
@@ -372,6 +376,10 @@ public class JPADataAuditStore implements DataAuditStore {
         log.setRepeatLimit(job.getRepeatLimit());
         log.setScheduledId(job.getScheduledId());
         log.setRetries(job.getRetries());
+        log.setProcessId(jobDataEvent.getKogitoProcessId());
+        log.setProcessVersion(jobDataEvent.getKogitoProcessVersion());
+        log.setRootProcessId(getOnlyIfFilled(jobDataEvent::getKogitoRootProcessId));
+        log.setRootProcessVersion(getOnlyIfFilled(jobDataEvent::getKogitoRootProcessVersion));
 
         if (job.getStatus() != null) {
             log.setStatus(job.getStatus().name());
@@ -381,6 +389,7 @@ public class JPADataAuditStore implements DataAuditStore {
         log.setEventDate(Timestamp.from(Instant.now()));
         log.setExceptionMessage(job.getExceptionMessage());
         log.setExceptionDetails(job.getExceptionDetails());
+
         EntityManager entityManager = context.getContext();
         entityManager.persist(log);
     }

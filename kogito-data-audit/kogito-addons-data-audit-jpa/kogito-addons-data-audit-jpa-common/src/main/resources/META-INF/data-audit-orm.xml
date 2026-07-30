@@ -331,6 +331,7 @@
 	               log.process_version as processVersion,
 	               log.parent_process_instance_id as parentProcessInstanceId,
 	               log.root_process_id as rootProcessId,
+	               log.root_process_version as rootProcessVersion,
 	               log.root_process_instance_id as rootProcessInstanceId,
 	               log.process_instance_id as processInstanceId,
 	               log.business_key as businessKey,
@@ -359,6 +360,7 @@
                log.process_version as processVersion,
                log.parent_process_instance_id as parentProcessInstanceId,
                log.root_process_id as rootProcessId,
+               log.root_process_version as rootProcessVersion,
                log.root_process_instance_id as rootProcessInstanceId,
                log.process_instance_id as processInstanceId,
                log.business_key as businessKey,
@@ -387,6 +389,7 @@
                log.process_version as processVersion,
                log.parent_process_instance_id as parentProcessInstanceId,
                log.root_process_id as rootProcessId,
+               log.root_process_version as rootProcessVersion,
                log.root_process_instance_id as rootProcessInstanceId,
                log.process_instance_id as processInstanceId,
                log.business_key as businessKey,
@@ -416,6 +419,7 @@
                log.process_version as processVersion,
                log.parent_process_instance_id as parentProcessInstanceId,
                log.root_process_id as rootProcessId,
+               log.root_process_version as rootProcessVersion,
                log.root_process_instance_id as rootProcessInstanceId,
                log.process_instance_id as processInstanceId,
                log.business_key as businessKey,
@@ -443,6 +447,7 @@
                log.process_version as processVersion,
                log.parent_process_instance_id as parentProcessInstanceId,
                log.root_process_id as rootProcessId,
+               log.root_process_version as rootProcessVersion,
                log.root_process_instance_id as rootProcessInstanceId,
                log.process_instance_id as processInstanceId,
                log.business_key as businessKey,
@@ -575,7 +580,7 @@
 
 	<named-native-query name="GetAllUserTaskInstanceState" >
 	       <query>
-	        SELECT 
+	        SELECT
 	               log.event_id,
 	               log.event_date,
 	               log.user_task_definition_id,
@@ -588,8 +593,8 @@
 	               log.state,
 	               log.event_type
 	          FROM Task_Instance_State_Log log
-	     LEFT JOIN Task_Instance_State_Log log_newer ON log.user_task_instance_id = log_newer.user_task_instance_id 
-	                                             AND log_newer.event_date &lt; log_newer.event_date
+	     LEFT JOIN Task_Instance_State_Log log_newer ON log.user_task_instance_id = log_newer.user_task_instance_id
+	                                             AND log.event_date &lt; log_newer.event_date
 	         WHERE log_newer.event_id IS NULL
 	       </query>
 	</named-native-query>
