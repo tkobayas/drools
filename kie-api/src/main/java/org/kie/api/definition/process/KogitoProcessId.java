@@ -11,9 +11,18 @@ public class KogitoProcessId implements Comparable<KogitoProcessId> {
     private String id;
     private String version;
     private transient Optional<Version> versionObj;
+    private static final String DEFAULT_SEP = "_";
 
     public static KogitoProcessId from (String id, String version) {
         return id == null ? null: new KogitoProcessId(id, version);
+    }
+    
+    public static String toString (String id, String version) {
+        return toString(id, version, DEFAULT_SEP);
+    }
+    
+    public static String toString (String id, String version, String separator) {
+        return version != null ? id+separator+version : id;
     }
 
     public KogitoProcessId(String id, String version) {
@@ -31,18 +40,17 @@ public class KogitoProcessId implements Comparable<KogitoProcessId> {
     }
 
     public String id () {
-    	return id;
+        return id;
     }
 
     public String version() {
         return version;
     }
-    
-    
+
     public String getProcessId() {
-		return id;
-	}
-    
+        return id;
+    }
+
     public String getVersion() {
         return version;
     }
@@ -51,19 +59,19 @@ public class KogitoProcessId implements Comparable<KogitoProcessId> {
     public boolean equals(Object o) {
     	return o instanceof KogitoProcessId id && compareTo(id) == 0;
     }
-    
+
     @Override
     public int hashCode() {
-    	return id.hashCode();
+        return id.hashCode();
     }
-    
+
     @Override
     public String toString() {
-        return toString("_");
+        return toString(DEFAULT_SEP);
     }
-    
+
     public String toString (String separator) {
-        return version != null ? id+separator+version : id;
+        return toString(id,version, separator);
     }
 
     private static Optional<Version> parseVersion(String version) {
