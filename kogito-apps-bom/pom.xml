@@ -150,6 +150,12 @@
         <groupId>org.kie.kogito</groupId>
         <artifactId>data-index-service-mongodb</artifactId>
         <version>${project.version}</version>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.kie.kogito</groupId>
+        <artifactId>data-index-service-mongodb</artifactId>
+        <version>${project.version}</version>
         <classifier>sources</classifier>
       </dependency>
       <dependency>
