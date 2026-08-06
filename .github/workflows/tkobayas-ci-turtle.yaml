@@ -25,7 +25,7 @@ jobs:
   full-build:
     name: '${{ matrix.os }}, Java ${{ matrix.java }}'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 240
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
