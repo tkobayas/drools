@@ -200,7 +200,7 @@ jobs:
         run: |
           pl=$(paste -sd, "$MAVEN_PL_AFFECTED_FILE")
           [ -z "$pl" ] && echo "No affected modules. Skipping." && exit 0
-          mvn -T 2 --batch-mode --no-transfer-progress -fae -Dsurefire.redirectTestOutputToFile=true -Dquarkus.http.test-port=0 -Denforcer.skip=true -Dcheckstyle.skip=true -Dformatter.skip=true -Dimpsort.skip=true -Dmaven.javadoc.skip=true -Dsource.skip=true -Darchunit.skip=true -Darchetype.test.skip=true -Dinvoker.skip=true -Dexec.skip=true -pl "$pl" verify
+          mvn -T 4 --batch-mode --no-transfer-progress -fae -Dsurefire.redirectTestOutputToFile=true -Dquarkus.http.test-port=0 -Denforcer.skip=true -Dcheckstyle.skip=true -Dformatter.skip=true -Dimpsort.skip=true -Dmaven.javadoc.skip=true -Dsource.skip=true -Darchunit.skip=true -Darchetype.test.skip=true -Dinvoker.skip=true -Dexec.skip=true -pl "$pl" verify
 
       - name: "CI :: BUILD :: Full${{ github.event_name == 'pull_request' && ' (skipped)' || '' }}"
         if: github.event_name == 'push'
