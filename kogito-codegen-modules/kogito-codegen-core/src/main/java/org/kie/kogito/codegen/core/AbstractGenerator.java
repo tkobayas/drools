@@ -32,6 +32,7 @@ public abstract class AbstractGenerator implements Generator {
 
     // test
     // test02
+    // test02 - add commit1
 
     private final ConfigGenerator configGenerator;
     private final KogitoBuildContext context;
