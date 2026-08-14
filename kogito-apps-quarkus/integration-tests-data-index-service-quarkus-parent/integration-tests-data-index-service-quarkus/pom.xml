@@ -116,6 +116,20 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- Build-ordering dependency: these tests launch the Docker image produced by this module. -->
+    <dependency>
+      <groupId>org.kie.kogito</groupId>
+      <artifactId>data-index-service-mongodb</artifactId>
+      <version>${project.version}</version>
+      <type>pom</type>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
