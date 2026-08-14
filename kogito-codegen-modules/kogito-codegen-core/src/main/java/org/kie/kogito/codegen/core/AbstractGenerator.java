@@ -31,6 +31,7 @@ import org.kie.kogito.codegen.api.context.KogitoBuildContext;
 public abstract class AbstractGenerator implements Generator {
 
     // test
+    // test01
 
     private final ConfigGenerator configGenerator;
     private final KogitoBuildContext context;
