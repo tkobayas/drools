@@ -47,6 +47,8 @@ import static org.kie.kogito.internal.utils.ConversionUtils.isEmpty;
 
 public class UserTaskInstanceMetaMapper implements Function<UserTaskInstanceDataEvent<?>, ObjectNode> {
 
+    // test 04_1
+
     @Override
     public ObjectNode apply(UserTaskInstanceDataEvent<?> event) {
         if (event == null) {

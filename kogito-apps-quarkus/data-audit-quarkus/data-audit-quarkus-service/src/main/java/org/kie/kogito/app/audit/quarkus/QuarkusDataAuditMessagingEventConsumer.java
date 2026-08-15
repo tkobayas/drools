@@ -39,6 +39,8 @@ import static org.kie.kogito.app.audit.api.SubsystemConstants.KOGITO_USERTASKINS
 @ApplicationScoped
 public class QuarkusDataAuditMessagingEventConsumer {
 
+    // test04
+
     private static final Logger LOGGER = LoggerFactory.getLogger(QuarkusDataAuditMessagingEventConsumer.class);
 
     @Inject
