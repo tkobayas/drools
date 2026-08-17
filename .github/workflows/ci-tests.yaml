@@ -24,7 +24,7 @@ name: 'CI :: CI Tests'
 on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
-    branches: [main]
+    branches: [main, parallel-ci-tkobayas]
   push:
     branches: [main]
 
@@ -34,7 +34,7 @@ concurrency:
 
 jobs:
   ci-compute-build-scopes:
-    if: false # github.event.action != 'closed'
+    if: github.event.action != 'closed'
     name: 'CiComputeBuildScopesTest'
     runs-on: ubuntu-latest
     steps:
