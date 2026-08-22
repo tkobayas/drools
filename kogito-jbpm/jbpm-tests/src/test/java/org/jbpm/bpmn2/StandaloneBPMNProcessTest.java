@@ -453,36 +453,37 @@ public class StandaloneBPMNProcessTest extends JbpmBpmn2TestCase {
     }
 
     @Test
-    public void testEventBasedSplit5() throws Exception {
-        kruntime = createKogitoProcessRuntime("org/jbpm/bpmn2/intermediate/BPMN2-EventBasedSplit5.bpmn2");
-
-        kruntime.getKogitoWorkItemManager().registerWorkItemHandler("Email1", new SystemOutWorkItemHandler());
-        kruntime.getKogitoWorkItemManager().registerWorkItemHandler("Email2", new SystemOutWorkItemHandler());
-        ReceiveTaskHandler receiveTaskHandler = new ReceiveTaskHandler();
-        kruntime.getKogitoWorkItemManager().registerWorkItemHandler("Receive Task", receiveTaskHandler);
+    public void testEventBasedSplit5() {
+        Application app = ProcessTestHelper.newApplication();
+        ProcessTestHelper.registerHandler(app, "Email1", new SystemOutWorkItemHandler());
+        ProcessTestHelper.registerHandler(app, "Email2", new SystemOutWorkItemHandler());
+        ProcessTestHelper.registerHandler(app, "Receive Task", new ReceiveTaskHandler());
+        org.kie.kogito.process.Process<org.jbpm.bpmn2.intermediate.EventBasedSplit5Model> processDefinition =
+                org.jbpm.bpmn2.intermediate.EventBasedSplit5Process.newProcess(app);
         // Yes
-        KogitoProcessInstance processInstance = kruntime.startProcess("EventBasedSplit5");
-        assertThat(processInstance.getState()).isEqualTo(KogitoProcessInstance.STATE_ACTIVE);
-        kruntime.getKogitoWorkItemManager().registerWorkItemHandler("Email1", new SystemOutWorkItemHandler());
-        kruntime.getKogitoWorkItemManager().registerWorkItemHandler("Email2", new SystemOutWorkItemHandler());
-        kruntime.getKogitoWorkItemManager().registerWorkItemHandler("Receive Task", receiveTaskHandler);
-
-        receiveTaskHandler.getWorkItemId().stream().findFirst().ifPresent(id -> kruntime.getKogitoWorkItemManager().completeWorkItem(id, Map.of("Message", "YesValue")));
-
-        assertProcessInstanceCompleted(processInstance.getStringId(), kruntime);
-
-        receiveTaskHandler.getWorkItemId().forEach(id -> kruntime.getKogitoWorkItemManager().completeWorkItem(id, Map.of("Message", "NoValue")));
-
-        kruntime.getKogitoWorkItemManager().registerWorkItemHandler("Email1", new SystemOutWorkItemHandler());
-        kruntime.getKogitoWorkItemManager().registerWorkItemHandler("Email2", new SystemOutWorkItemHandler());
-        kruntime.getKogitoWorkItemManager().registerWorkItemHandler("Receive Task", receiveTaskHandler);
+        ProcessInstance<org.jbpm.bpmn2.intermediate.EventBasedSplit5Model> yesInstance =
+                processDefinition.createInstance(processDefinition.createModel());
+        yesInstance.start();
+        assertThat(yesInstance.status()).isEqualTo(ProcessInstance.STATE_ACTIVE);
+        assertThat(yesInstance.variables().getX()).isNull();
+        yesInstance.workItems().stream()
+                .filter(wi -> "Yes".equals(wi.getName()))
+                .findFirst()
+                .ifPresent(wi -> yesInstance.completeWorkItem(wi.getId(), Map.of("Message", "YesValue")));
+        assertThat(yesInstance.status()).isEqualTo(ProcessInstance.STATE_COMPLETED);
+        assertThat(yesInstance.variables().getX()).isEqualTo("YesValue");
         // No
-        processInstance = kruntime.startProcess("EventBasedSplit5");
-        receiveTaskHandler.getWorkItemId().stream().findFirst().ifPresent(id -> kruntime.getKogitoWorkItemManager().completeWorkItem(id, Map.of("Message", "NoValue")));
-
-        assertProcessInstanceCompleted(processInstance.getStringId(), kruntime);
-
-        receiveTaskHandler.getWorkItemId().stream().findFirst().ifPresent(id -> kruntime.getKogitoWorkItemManager().completeWorkItem(id, Map.of("Message", "YesValue")));
+        ProcessInstance<org.jbpm.bpmn2.intermediate.EventBasedSplit5Model> noInstance =
+                processDefinition.createInstance(processDefinition.createModel());
+        noInstance.start();
+        assertThat(noInstance.status()).isEqualTo(ProcessInstance.STATE_ACTIVE);
+        assertThat(noInstance.variables().getX()).isNull();
+        noInstance.workItems().stream()
+                .filter(wi -> "No".equals(wi.getName()))
+                .findFirst()
+                .ifPresent(wi -> noInstance.completeWorkItem(wi.getId(), Map.of("Message", "NoValue")));
+        assertThat(noInstance.status()).isEqualTo(ProcessInstance.STATE_COMPLETED);
+        assertThat(noInstance.variables().getX()).isEqualTo("NoValue");
     }
 
     @Test
