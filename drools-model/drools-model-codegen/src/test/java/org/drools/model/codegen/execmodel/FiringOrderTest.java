@@ -59,6 +59,43 @@ public class FiringOrderTest extends BaseModelTest {
         }
     }
 
+    public static class TestFact {
+
+        private final String name;
+        private final boolean autoFocusTarget;
+        private String state = "PENDING";
+        private boolean priorityHandled;
+
+        public TestFact(String name, boolean autoFocusTarget) {
+            this.name = name;
+            this.autoFocusTarget = autoFocusTarget;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public boolean isAutoFocusTarget() {
+            return autoFocusTarget;
+        }
+
+        public String getState() {
+            return state;
+        }
+
+        public void setState(String state) {
+            this.state = state;
+        }
+
+        public boolean isPriorityHandled() {
+            return priorityHandled;
+        }
+
+        public void setPriorityHandled(boolean priorityHandled) {
+            this.priorityHandled = priorityHandled;
+        }
+    }
+
     private static final String DRL_INSERT_FACT = """
                                       package com.example.drools
                                       
@@ -140,6 +177,70 @@ public class FiringOrderTest extends BaseModelTest {
     @MethodSource("parameters")
     void ruleCActivatesBeforeRuleBUpdateTest(RUN_TYPE runType) {
         ruleCActivatesBeforeRuleB(runType, DRL_UPDATE_FACT);
+    }
+
+    private static final String DRL_AUTO_FOCUS_PREEMPTS = """
+                                      package com.example.drools
+
+                                      import %s.TestFact;
+
+                                      global java.util.List fired;
+
+                                      rule "Prepare source fact"
+                                          ruleflow-group "primaryGroup"
+                                      when
+                                          $source : TestFact(name == "source", state == "PENDING")
+                                      then
+                                          modify($source) { setState("READY") };
+                                      end
+
+                                      rule "Auto-focus target group"
+                                          ruleflow-group "autoFocusGroup"
+                                          auto-focus true
+                                      when
+                                          $source : TestFact(autoFocusTarget == false, state == "READY", priorityHandled == false)
+                                          $target : TestFact(autoFocusTarget == true, state == "PENDING", priorityHandled == false)
+                                      then
+                                          modify($source) {
+                                              setState("PENDING"),
+                                              setPriorityHandled(true)
+                                          };
+                                          modify($target) {
+                                              setState("READY"),
+                                              setPriorityHandled(true)
+                                          };
+                                          fired.add("auto-focus");
+                                      end
+
+                                      rule "Process ready fact"
+                                          ruleflow-group "primaryGroup"
+                                      when
+                                          $fact : TestFact(state == "READY")
+                                      then
+                                          modify($fact) { setState("COMPLETE") };
+                                          fired.add("process-" + $fact.getName());
+                                      end
+                                      """.formatted(FiringOrderTest.class.getName());
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    void autoFocusedGroupPreemptsPreviouslyFocusedGroup(RUN_TYPE runType) {
+        final KieSession kieSession = getKieSession(runType, DRL_AUTO_FOCUS_PREEMPTS);
+
+        try {
+            final List<String> firedRules = new ArrayList<>();
+            kieSession.setGlobal("fired", firedRules);
+            kieSession.insert(new TestFact("source", false));
+            kieSession.insert(new TestFact("target", true));
+            kieSession.getAgenda().getAgendaGroup("primaryGroup").setFocus();
+
+            kieSession.fireAllRules();
+
+            assertThat(firedRules).as("Auto-focused group should preempt the previously focused group")
+                    .containsExactly("auto-focus", "process-target", "process-source");
+        } finally {
+            kieSession.dispose();
+        }
     }
 
     void ruleCActivatesBeforeRuleB(RUN_TYPE runType, String drl) {

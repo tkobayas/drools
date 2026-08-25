@@ -76,9 +76,7 @@ public class PhreakRuleTerminalNode {
                               RuleExecutor executor) {
         RuleAgendaItem ruleAgendaItem = executor.getRuleAgendaItem();
 
-        if ( rtnNode.getRule().getAutoFocus() && !ruleAgendaItem.getAgendaGroup().isActive() ) {
-            activationsManager.getAgendaGroupsManager().setFocus( ruleAgendaItem.getAgendaGroup() );
-        }
+        autoFocusIfNeeded(rtnNode, ruleAgendaItem, activationsManager);
 
         for (RuleTerminalNodeLeftTuple leftTuple = (RuleTerminalNodeLeftTuple) srcLeftTuples.getInsertFirst(); leftTuple != null; ) {
             RuleTerminalNodeLeftTuple next = (RuleTerminalNodeLeftTuple) leftTuple.getStagedNext();
@@ -166,9 +164,7 @@ public class PhreakRuleTerminalNode {
                               TupleSets srcLeftTuples,
                               RuleExecutor executor) {
         RuleAgendaItem ruleAgendaItem = executor.getRuleAgendaItem();
-        if ( rtnNode.getRule().getAutoFocus() && !ruleAgendaItem.getAgendaGroup().isActive() ) {
-            activationsManager.getAgendaGroupsManager().setFocus(ruleAgendaItem.getAgendaGroup());
-        }
+        autoFocusIfNeeded(rtnNode, ruleAgendaItem, activationsManager);
 
         for (RuleTerminalNodeLeftTuple leftTuple = (RuleTerminalNodeLeftTuple) srcLeftTuples.getUpdateFirst(); leftTuple != null; ) {
             RuleTerminalNodeLeftTuple next = (RuleTerminalNodeLeftTuple) leftTuple.getStagedNext();
@@ -180,7 +176,16 @@ public class PhreakRuleTerminalNode {
         }
     }
 
-    public static void doLeftTupleUpdate(ReteEvaluator reteEvaluator, 
+    private static void autoFocusIfNeeded(TerminalNode rtnNode, RuleAgendaItem ruleAgendaItem,
+                                          ActivationsManager activationsManager) {
+        if (rtnNode.getRule().getAutoFocus() && !ruleAgendaItem.getAgendaGroup().isActive()) {
+            if (activationsManager.getAgendaGroupsManager().setFocus(ruleAgendaItem.getAgendaGroup())) {
+                activationsManager.haltGroupEvaluation();
+            }
+        }
+    }
+
+    public static void doLeftTupleUpdate(ReteEvaluator reteEvaluator,
                                          TerminalNode rtnNode, 
                                          RuleExecutor executor,
                                          ActivationsManager activationsManager, 
