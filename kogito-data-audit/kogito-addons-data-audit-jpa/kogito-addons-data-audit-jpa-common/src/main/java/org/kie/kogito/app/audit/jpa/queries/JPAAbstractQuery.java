@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -155,44 +157,66 @@ public abstract class JPAAbstractQuery<R> {
             return baseQuery;
         }
 
-        String valueRows = IntStream.range(0, allowedKeys.size())
-                .mapToObj(i -> "(:processId" + i + ", :processVersion" + i + ")")
-                .collect(Collectors.joining(", "));
+        Pattern fromPattern = Pattern.compile("(?i)\\bFROM\\s+([^\\s,)(]+)");
+        Matcher matcher = fromPattern.matcher(baseQuery);
+        if (!matcher.find()) {
+            throw new IllegalArgumentException("Invalid base SQL query structure: Could not parse target table from 'FROM' clause.");
+        }
+        String fromTable = matcher.group(1);
+        if (matcher.find()) {
+            throw new IllegalArgumentException("Ambiguous SQL query structure: Multiple 'FROM' clauses or targets detected.");
+        }
 
-        String cte = "WITH _allowed_processes (processId, processVersion) AS (VALUES " + valueRows + ") ";
+        String anchorBlock = "WITH anchor_row AS (SELECT MIN(id) as target_id FROM " + fromTable + ")";
+
+        String unionSelects = IntStream.range(0, allowedKeys.size())
+                .mapToObj(i -> {
+                    if (i == 0) {
+                        return "SELECT CAST(:processId" + i + " AS VARCHAR(255)) AS processId, CAST(:processVersion" + i + " AS VARCHAR(255)) AS processVersion FROM " + fromTable
+                                + " WHERE id = (SELECT target_id FROM anchor_row)";
+                    } else {
+                        return "SELECT :processId" + i + ", :processVersion" + i + " FROM " + fromTable + " WHERE id = (SELECT target_id FROM anchor_row)";
+                    }
+                })
+                .collect(Collectors.joining(" UNION ALL "));
+
+        String cte = anchorBlock + ", allowed_processes (processId, processVersion) AS (" + unionSelects + ") ";
 
         String isolationPredicate;
         if (rootProcessIdColumn != null) {
             String preFilter = "("
-                    + processIdColumn + " IN (SELECT ap.processId FROM _allowed_processes ap)"
-                    + " OR " + rootProcessIdColumn + " IN (SELECT ap.processId FROM _allowed_processes ap)"
+                    + processIdColumn + " IN (SELECT ap.processId FROM allowed_processes ap)"
+                    + " OR " + rootProcessIdColumn + " IN (SELECT ap.processId FROM allowed_processes ap)"
                     + ")";
             String versionCheck = "("
                     + processVersionColumn + " IS NULL"
-                    + " OR EXISTS (SELECT 1 FROM _allowed_processes ap WHERE ap.processId = " + rootProcessIdColumn
+                    + " OR EXISTS (SELECT 1 FROM allowed_processes ap WHERE ap.processId = " + rootProcessIdColumn
                     + " AND ap.processVersion = " + rootProcessVersionColumn + ")"
                     + " OR (" + rootProcessIdColumn + " IS NULL"
-                    + " AND EXISTS (SELECT 1 FROM _allowed_processes ap WHERE ap.processId = " + processIdColumn
+                    + " AND EXISTS (SELECT 1 FROM allowed_processes ap WHERE ap.processId = " + processIdColumn
                     + " AND ap.processVersion = " + processVersionColumn + "))"
                     + ")";
             isolationPredicate = preFilter + " AND " + versionCheck;
         } else {
-            isolationPredicate = processIdColumn + " IN (SELECT ap.processId FROM _allowed_processes ap)"
+            isolationPredicate = processIdColumn + " IN (SELECT ap.processId FROM allowed_processes ap)"
                     + " AND ("
                     + processVersionColumn + " IS NULL"
-                    + " OR EXISTS (SELECT 1 FROM _allowed_processes ap WHERE ap.processId = " + processIdColumn
+                    + " OR EXISTS (SELECT 1 FROM allowed_processes ap WHERE ap.processId = " + processIdColumn
                     + " AND ap.processVersion = " + processVersionColumn + ")"
                     + ")";
         }
 
         String upperQuery = baseQuery.toUpperCase();
         int orderByIdx = upperQuery.lastIndexOf("ORDER BY");
+
+        String queryConditionKeyword = upperQuery.contains(" WHERE ") ? " AND " : " WHERE ";
+
         if (orderByIdx >= 0) {
             return cte + baseQuery.substring(0, orderByIdx).stripTrailing()
-                    + " AND " + isolationPredicate + " "
+                    + queryConditionKeyword + isolationPredicate + " "
                     + baseQuery.substring(orderByIdx);
         }
-        return cte + baseQuery.stripTrailing() + " AND " + isolationPredicate;
+        return cte + baseQuery.stripTrailing() + queryConditionKeyword + isolationPredicate;
     }
 
     private void bindIsolationParameters(Query jpaQuery, List<ProcessKey> allowedKeys) {

@@ -22,6 +22,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -93,19 +94,19 @@ public class GenericRepository extends Repository {
             return baseQuery;
         }
 
-        String valueTuples = java.util.stream.IntStream.range(0, processIds.size())
+        String processInstancesTable = "process_instances";
+        String anchorBlock = "WITH anchor_row AS (SELECT MIN(id) as target_id FROM " + processInstancesTable + ")";
+        String unionSelects = IntStream.range(0, processIds.size())
                 .mapToObj(i -> {
                     if (i == 0) {
-                        return "(CAST(? AS VARCHAR(255)), CAST(? AS VARCHAR(255)))";
+                        return "SELECT CAST(? AS VARCHAR(255)), CAST(? AS VARCHAR(255)) FROM " + processInstancesTable + " WHERE id = (SELECT target_id FROM anchor_row)";
                     } else {
-                        return "(?, ?)";
+                        return "SELECT ?, ? FROM " + processInstancesTable + " WHERE id = (SELECT target_id FROM anchor_row)";
                     }
                 })
-                .collect(Collectors.joining(", "));
+                .collect(Collectors.joining(" UNION ALL "));
 
-        String cte = "WITH allowed_processes (process_id, process_version) AS (" +
-                "  SELECT * FROM (VALUES " + valueTuples + ") AS temp(pid, pver)" +
-                ") ";
+        String cte = anchorBlock + ", allowed_processes (process_id, process_version) AS (" + unionSelects + ") ";
 
         // Determine if we need WHERE or AND
         String whereClause = baseQuery.toLowerCase().contains(" where ") ? " AND " : " WHERE ";
