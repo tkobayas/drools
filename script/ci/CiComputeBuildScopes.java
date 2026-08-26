@@ -147,13 +147,39 @@ public class CiComputeBuildScopes {
         writeLines(affectedOut, affected);
         writeLines(changedOut, changed);
 
+        // 7. partition logic (only when CI_PARTITIONS_DIR is set)
+        String partitionsDirEnv = cfg("CI_PARTITIONS_DIR");
+        List<Partition> partitions = null;
+        if (partitionsDirEnv != null && !partitionsDirEnv.isBlank()) {
+            Path partitionsDir = cwd.resolve(partitionsDirEnv);
+            Map<Path, String> dirToGaMap = gaToDir.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+            partitions = readPartitionFiles(partitionsDir, dirToGaMap, cwd);
+            computePartitionClosures(partitions, graph);
+            Partition defaultPartition = new Partition("default", Set.of());
+            partitions.add(defaultPartition);
+            assignToPartitionsExclusive(affected, partitions, defaultPartition);
+            computePerPartitionUpstream(partitions, graph);
+            for (Partition p : partitions) {
+                writeLines(partitionedPath(affectedOut, p.name), p.assigned);
+                writeLines(partitionedPath(upstreamOut, p.name), p.upstream);
+            }
+        }
+
         int total = gaToDir.size();
         int ignored = total - affected.size() - upstreamAll.size();
-        System.out.println("total=" + total
-                + " changed=" + changed.size()
-                + " affected=" + affected.size()
-                + " upstream=" + upstreamAll.size()
-                + " ignored=" + ignored);
+        StringBuilder sb = new StringBuilder();
+        sb.append("total=").append(total)
+          .append(" changed=").append(changed.size())
+          .append(" affected=").append(affected.size())
+          .append(" upstream=").append(upstreamAll.size())
+          .append(" ignored=").append(ignored);
+        if (partitions != null) {
+            for (Partition p : partitions) {
+                sb.append(" affected-").append(p.name).append("=").append(p.assigned.size());
+            }
+        }
+        System.out.println(sb);
     }
 
     /**
@@ -239,6 +265,94 @@ public class CiComputeBuildScopes {
         List<String> sorted = new ArrayList<>(lines);
         Collections.sort(sorted);
         Files.write(out, sorted);
+    }
+
+    static class Partition {
+        final String name;
+        final Set<String> entries;
+        Set<String> closure = Set.of();
+        Set<String> assigned = new LinkedHashSet<>();
+        Set<String> upstream = new LinkedHashSet<>();
+        Partition(String name, Set<String> entries) {
+            this.name = name;
+            this.entries = entries;
+        }
+    }
+
+    static List<Partition> readPartitionFiles(Path partitionsDir, Map<Path, String> dirToGa, Path cwd) throws IOException {
+        List<Path> files;
+        try (Stream<Path> s = Files.list(partitionsDir)) {
+            files = s.filter(f -> f.getFileName().toString().startsWith("partition") && f.getFileName().toString().endsWith(".txt"))
+                     .sorted()
+                     .collect(Collectors.toList());
+        }
+        List<Partition> result = new ArrayList<>();
+        for (Path file : files) {
+            String partName = file.getFileName().toString().replaceFirst("\\.txt$", "");
+            Set<String> entries = new LinkedHashSet<>();
+            for (String line : Files.readAllLines(file)) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
+                Path modDir = cwd.resolve(trimmed).toAbsolutePath().normalize();
+                String ga = dirToGa.get(modDir);
+                if (ga == null) {
+                    System.err.println("ERROR: " + partName + ": '" + trimmed + "' does not resolve to a reactor module");
+                    System.exit(1);
+                }
+                entries.add(ga);
+            }
+            result.add(new Partition(partName, entries));
+        }
+        return result;
+    }
+
+    private static void computePartitionClosures(List<Partition> partitions, DepGraph graph) {
+        for (Partition p : partitions) {
+            p.closure = DepGraph.traverse(p.entries, graph.upstreamOf);
+        }
+    }
+
+    private static void assignToPartitionsExclusive(Set<String> affected, List<Partition> partitions,
+                                                      Partition defaultPartition) {
+        List<Partition> explicit = partitions.stream()
+                .filter(p -> p != defaultPartition)
+                .collect(Collectors.toList());
+        for (String ga : affected) {
+            Partition sole = null;
+            int count = 0;
+            for (Partition p : explicit) {
+                if (p.closure.contains(ga)) {
+                    sole = p;
+                    count++;
+                    if (count > 1) break;
+                }
+            }
+            if (count == 1) {
+                sole.assigned.add(ga);
+            } else {
+                defaultPartition.assigned.add(ga);
+            }
+        }
+    }
+
+    // The upstream set intentionally includes the partition's own affected modules.
+    // Without them, an upstream module from another partition could fail to resolve
+    // dependencies on this partition's affected modules (e.g., shared module U depends
+    // on affected module V — if V is removed from upstream, building U fails).
+    private static void computePerPartitionUpstream(List<Partition> partitions, DepGraph graph) {
+        for (Partition p : partitions) {
+            if (p.assigned.isEmpty()) continue;
+            p.upstream = DepGraph.traverse(p.assigned, graph.upstreamOf);
+        }
+    }
+
+    private static Path partitionedPath(Path basePath, String category) {
+        String name = basePath.getFileName().toString();
+        int dot = name.lastIndexOf('.');
+        String newName = (dot >= 0)
+                ? name.substring(0, dot) + "-" + category + name.substring(dot)
+                : name + "-" + category;
+        return basePath.resolveSibling(newName);
     }
 
     private static int runMavenWithDepGraphExtractor(Path cwd, Path extractorJar, Path graphOut,
