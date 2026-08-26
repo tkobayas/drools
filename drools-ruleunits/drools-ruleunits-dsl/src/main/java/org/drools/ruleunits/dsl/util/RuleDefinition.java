@@ -22,6 +22,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,6 +56,7 @@ import org.drools.ruleunits.dsl.patterns.Pattern2DefImpl;
 import org.drools.ruleunits.dsl.patterns.PatternDef;
 import org.drools.ruleunits.impl.datasources.ConsequenceDataStore;
 import org.drools.ruleunits.impl.datasources.ConsequenceDataStoreImpl;
+import org.drools.util.DateUtils;
 import org.kie.api.runtime.rule.RuleContext;
 
 import static org.drools.model.DSL.declarationOf;
@@ -66,6 +69,7 @@ public class RuleDefinition implements RuleFactory {
     private final RuleUnitDefinition unit;
     private final RulesFactory.UnitGlobals globals;
 
+    private final Map<Rule.Attribute, Object> attributes = new IdentityHashMap<>();
     private final List<InternalPatternDef> patterns = new ArrayList<>();
     private RuleItemBuilder consequence;
 
@@ -75,6 +79,58 @@ public class RuleDefinition implements RuleFactory {
         this.name = name;
         this.globals = globals;
         this.unit = unit;
+    }
+
+    @Override
+    public RuleFactory salience(int value) {
+        attributes.put(Rule.Attribute.SALIENCE, value);
+        return this;
+    }
+
+    @Override
+    public RuleFactory noLoop() {
+        attributes.put(Rule.Attribute.NO_LOOP, true);
+        return this;
+    }
+
+    @Override
+    public RuleFactory enabled(boolean value) {
+        attributes.put(Rule.Attribute.ENABLED, value);
+        return this;
+    }
+
+    @Override
+    public RuleFactory activationGroup(String group) {
+        attributes.put(Rule.Attribute.ACTIVATION_GROUP, group);
+        return this;
+    }
+
+    @Override
+    public RuleFactory timer(String expr) {
+        attributes.put(Rule.Attribute.TIMER, expr);
+        return this;
+    }
+
+    @Override
+    public RuleFactory calendars(String... calendars) {
+        attributes.put(Rule.Attribute.CALENDARS, calendars);
+        return this;
+    }
+
+    @Override
+    public RuleFactory dateEffective(String date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(DateUtils.parseDate(date));
+        attributes.put(Rule.Attribute.DATE_EFFECTIVE, cal);
+        return this;
+    }
+
+    @Override
+    public RuleFactory dateExpires(String date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(DateUtils.parseDate(date));
+        attributes.put(Rule.Attribute.DATE_EXPIRES, cal);
+        return this;
     }
 
     public void addPattern(InternalPatternDef pattern) {
@@ -162,8 +218,13 @@ public class RuleDefinition implements RuleFactory {
         return globals.asGlobal(globalField, globalObject);
     }
 
+    @SuppressWarnings("unchecked")
     public Rule toRule() {
         RuleBuilder ruleBuilder = rule(unit.getClass().getCanonicalName(), name).unit(unit.getClass());
+
+        for (Map.Entry<Rule.Attribute, Object> entry : attributes.entrySet()) {
+            ruleBuilder.attribute((Rule.Attribute) entry.getKey(), entry.getValue());
+        }
 
         List<RuleItemBuilder> items = new ArrayList<>();
 
