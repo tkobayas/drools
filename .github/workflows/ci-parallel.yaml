@@ -122,13 +122,46 @@ jobs:
       #   -Dformatter.skip=true                     skip formatter plugin
       #   -Darchunit.skip=true                      skip ArchUnit plugin
       #   -Dquarkus.build.skip=true                 skip Quarkus application build
+      #   -Ddisable.quarkus.plugin=true             skip compile-time Quarkus bootstrap
+      #   -Dskip.quarkus.image.assembly=true        skip assemblies that package target/quarkus-app
 
       - name: "PR CHECK :: BUILD :: Upstream modules (tests skipped)"
         shell: bash
         run: |
           pl=$(paste -sd, "${{ runner.temp }}/maven-pl-upstream-${{ matrix.partition }}.txt")
           [ -z "$pl" ] && echo "No upstream modules. Skipping." && exit 0
-          mvn -T 1C --batch-mode --no-transfer-progress -fae -DskipTests -DskipITs -Dquarkus.build.skip=true -Ddisable.quarkus.plugin=true -Denforcer.skip=true -Dcheckstyle.skip=true -Dformatter.skip=true -Darchunit.skip=true -Dsurefire.redirectTestOutputToFile=true -pl "$pl" install
+          mvn -T 1C --batch-mode --no-transfer-progress -fae -DskipTests -DskipITs -Dquarkus.build.skip=true -Ddisable.quarkus.plugin=true -Dskip.quarkus.image.assembly=true -Denforcer.skip=true -Dcheckstyle.skip=true -Dformatter.skip=true -Darchunit.skip=true -Dsurefire.redirectTestOutputToFile=true -pl "$pl" install
+
+      - name: "PR CHECK :: BUILD :: Required Quarkus applications"
+        shell: bash
+        run: |
+          upstream_file="${{ runner.temp }}/maven-pl-upstream-${{ matrix.partition }}.txt"
+          quarkus_applications=()
+
+          # Rebuild modules whose skipped image-build archive must be restored, plus
+          # applications that provide local container images to integration tests.
+          while IFS= read -r module; do
+            case "$module" in
+              org.kie.kogito:data-index-service-inmemory | \
+              org.kie.kogito:data-index-service-mongodb | \
+              org.kie.kogito:data-index-service-postgresql | \
+              org.kie.kogito:explainability-service-messaging | \
+              org.kie.kogito:jitexecutor-runner | \
+              org.kie.kogito:jobs-service-common | \
+              org.kie.kogito:jobs-service-inmemory | \
+              org.kie.kogito:jobs-service-postgresql)
+                quarkus_applications+=("$module")
+                ;;
+            esac
+          done < "$upstream_file"
+
+          if [ "${#quarkus_applications[@]}" -eq 0 ]; then
+            echo "No required Quarkus applications. Skipping."
+            exit 0
+          fi
+
+          pl=$(IFS=,; echo "${quarkus_applications[*]}")
+          mvn -T 1C --batch-mode --no-transfer-progress -fae -DskipTests -DskipITs -Denforcer.skip=true -Dcheckstyle.skip=true -Dformatter.skip=true -Darchunit.skip=true -Dsurefire.redirectTestOutputToFile=true -pl "$pl" install
 
       - name: "PR CHECK :: TEST :: ${{ matrix.partition }}"
         shell: bash
