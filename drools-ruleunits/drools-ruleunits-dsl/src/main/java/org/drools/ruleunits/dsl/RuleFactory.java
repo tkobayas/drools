@@ -33,6 +33,22 @@ import org.drools.ruleunits.impl.datasources.ConsequenceDataStore;
  */
 public interface RuleFactory {
 
+    RuleFactory salience(int value);
+
+    RuleFactory noLoop();
+
+    RuleFactory enabled(boolean value);
+
+    RuleFactory activationGroup(String group);
+
+    RuleFactory timer(String expr);
+
+    RuleFactory calendars(String... calendars);
+
+    RuleFactory dateEffective(String date);
+
+    RuleFactory dateExpires(String date);
+
     <A> Pattern1Def<A> on(DataSource<A> dataSource);
 
     RuleFactory not(Function1<RuleFactory, PatternDef> patternBuilder);
