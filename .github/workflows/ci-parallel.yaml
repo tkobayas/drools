@@ -128,7 +128,7 @@ jobs:
         run: |
           pl=$(paste -sd, "${{ runner.temp }}/maven-pl-upstream-${{ matrix.partition }}.txt")
           [ -z "$pl" ] && echo "No upstream modules. Skipping." && exit 0
-          mvn --batch-mode --no-transfer-progress -fae -DskipTests -DskipITs -Dquarkus.build.skip=true -Denforcer.skip=true -Dcheckstyle.skip=true -Dformatter.skip=true -Darchunit.skip=true -Dsurefire.redirectTestOutputToFile=true -pl "$pl" install
+          mvn -T 1C --batch-mode --no-transfer-progress -fae -DskipTests -DskipITs -Dquarkus.build.skip=true -Ddisable.quarkus.plugin=true -Denforcer.skip=true -Dcheckstyle.skip=true -Dformatter.skip=true -Darchunit.skip=true -Dsurefire.redirectTestOutputToFile=true -pl "$pl" install
 
       - name: "PR CHECK :: TEST :: ${{ matrix.partition }}"
         shell: bash
