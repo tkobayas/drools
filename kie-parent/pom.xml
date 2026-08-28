@@ -284,7 +284,7 @@
     <version.org.mongo>5.3.1</version.org.mongo>
     <version.org.mozilla.rhino>1.8.1</version.org.mozilla.rhino>
     <!-- Keep synchronized with junit-jupiter (middle and minor should be the same) -->
-    <version.org.mvel>2.5.2.Final</version.org.mvel>
+    <version.org.mvel>2.5.3.Final</version.org.mvel>
     <!-- Version of JMH -->
     <version.org.openjdk.jmh>1.21</version.org.openjdk.jmh>
     <version.org.postgresql>42.7.12</version.org.postgresql>
