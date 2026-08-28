@@ -101,6 +101,7 @@ runs:
         echo "MAVEN_PL_AFFECTED_FILE=${{ runner.temp }}/maven-pl-affected.txt" >> "$GITHUB_ENV"
         echo "MAVEN_PL_UPSTREAM_FILE=${{ runner.temp }}/maven-pl-upstream.txt" >> "$GITHUB_ENV"
         echo "MAVEN_PL_CHANGED_FILE=${{ runner.temp }}/maven-pl-changed.txt" >> "$GITHUB_ENV"
+        echo "MAVEN_PL_IMAGE_PRODUCERS_FILE=${{ runner.temp }}/maven-pl-image-producers.txt" >> "$GITHUB_ENV"
         echo "DEP_GRAPH_EXTRACTOR__OUTPUT_FILE=${{ runner.temp }}/dep-graph.tsv" >> "$GITHUB_ENV"
         if [ -n "${{ inputs.partitions-dir }}" ]; then
           echo "CI_PARTITIONS_DIR=${{ inputs.partitions-dir }}" >> "$GITHUB_ENV"
@@ -109,6 +110,7 @@ runs:
         touch "${{ runner.temp }}/maven-pl-affected.txt"
         touch "${{ runner.temp }}/maven-pl-upstream.txt"
         touch "${{ runner.temp }}/maven-pl-changed.txt"
+        touch "${{ runner.temp }}/maven-pl-image-producers.txt"
 
     - name: 'SETUP :: Collect changed files'
       if: github.event_name == 'pull_request' && inputs.skip-build-scopes != 'true'
@@ -128,4 +130,5 @@ runs:
           "$CHANGED_FILES_FILE" \
           "$MAVEN_PL_UPSTREAM_FILE" \
           "$MAVEN_PL_AFFECTED_FILE" \
-          "$MAVEN_PL_CHANGED_FILE"
+          "$MAVEN_PL_CHANGED_FILE" \
+          "$MAVEN_PL_IMAGE_PRODUCERS_FILE"

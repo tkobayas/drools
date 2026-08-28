@@ -44,8 +44,10 @@ import java.util.stream.*;
  *   expected-upstream.txt            — golden list of groupId:artifactId, sorted
  *   expected-affected.txt            — golden list of groupId:artifactId, sorted
  *   expected-changed.txt             — golden list of groupId:artifactId, sorted (directly changed)
+ *   expected-image-producers.txt      — upstream modules configured as image producers
  *   expected-affected-partitionN.txt — per-partition affected goldens (when partition files exist)
  *   expected-upstream-partitionN.txt — per-partition upstream goldens
+ *   expected-image-producers-partitionN.txt — per-partition image-producer goldens
  *   expected-affected-default.txt    — implicit default partition affected golden
  *   expected-upstream-default.txt    — implicit default partition upstream golden
  *
@@ -123,13 +125,15 @@ public class CiComputeBuildScopesTest {
         Path actualUpstream = tmp.resolve("upstream.txt");
         Path actualAffected = tmp.resolve("affected.txt");
         Path actualChanged  = tmp.resolve("changed.txt");
+        Path actualImageProducers = tmp.resolve("image-producers.txt");
 
-        int rc = runScript(changedFiles, actualUpstream, actualAffected, actualChanged);
+        int rc = runScript(changedFiles, actualUpstream, actualAffected, actualChanged, actualImageProducers);
         Assertions.assertEquals(0, rc, "CiComputeBuildScopes exited with rc=" + rc);
 
         assertMatchesGolden(scenario, "upstream", actualUpstream);
         assertMatchesGolden(scenario, "affected", actualAffected);
         assertMatchesGolden(scenario, "changed",  actualChanged);
+        assertMatchesGolden(scenario, "image-producers", actualImageProducers);
 
         for (String part : PARTITIONS) {
             Path partAffected = tmp.resolve("affected-" + part + ".txt");
@@ -139,6 +143,10 @@ public class CiComputeBuildScopesTest {
             Path partUpstream = tmp.resolve("upstream-" + part + ".txt");
             if (Files.isRegularFile(scenario.resolve("expected-upstream-" + part + ".txt"))) {
                 assertMatchesGolden(scenario, "upstream-" + part, partUpstream);
+            }
+            Path partImageProducers = tmp.resolve("image-producers-" + part + ".txt");
+            if (Files.isRegularFile(scenario.resolve("expected-image-producers-" + part + ".txt"))) {
+                assertMatchesGolden(scenario, "image-producers-" + part, partImageProducers);
             }
         }
     }
@@ -169,7 +177,8 @@ public class CiComputeBuildScopesTest {
             Path actualUpstream = tmp.resolve("upstream.txt");
             Path actualAffected = tmp.resolve("affected.txt");
             Path actualChanged  = tmp.resolve("changed.txt");
-            int rc = runScript(changedFiles, actualUpstream, actualAffected, actualChanged);
+            Path actualImageProducers = tmp.resolve("image-producers.txt");
+            int rc = runScript(changedFiles, actualUpstream, actualAffected, actualChanged, actualImageProducers);
             if (rc != 0) {
                 System.err.println("[" + name + "] FAIL: CiComputeBuildScopes exited with rc=" + rc);
                 continue;
@@ -177,6 +186,7 @@ public class CiComputeBuildScopesTest {
             Files.copy(actualUpstream, scenario.resolve("expected-upstream.txt"), StandardCopyOption.REPLACE_EXISTING);
             Files.copy(actualAffected, scenario.resolve("expected-affected.txt"), StandardCopyOption.REPLACE_EXISTING);
             Files.copy(actualChanged,  scenario.resolve("expected-changed.txt"),  StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(actualImageProducers, scenario.resolve("expected-image-producers.txt"), StandardCopyOption.REPLACE_EXISTING);
             for (String part : PARTITIONS) {
                 Path partAffected = tmp.resolve("affected-" + part + ".txt");
                 if (Files.isRegularFile(partAffected)) {
@@ -188,19 +198,26 @@ public class CiComputeBuildScopesTest {
                     Files.copy(partUpstream, scenario.resolve("expected-upstream-" + part + ".txt"),
                             StandardCopyOption.REPLACE_EXISTING);
                 }
+                Path partImageProducers = tmp.resolve("image-producers-" + part + ".txt");
+                if (Files.isRegularFile(partImageProducers)) {
+                    Files.copy(partImageProducers, scenario.resolve("expected-image-producers-" + part + ".txt"),
+                            StandardCopyOption.REPLACE_EXISTING);
+                }
             }
             System.err.println("[" + name + "] UPDATED goldens");
         }
     }
 
-    private static int runScript(Path input, Path upstreamOut, Path affectedOut, Path changedOut)
+    private static int runScript(Path input, Path upstreamOut, Path affectedOut, Path changedOut,
+                                 Path imageProducersOut)
             throws IOException, InterruptedException {
         List<String> cmd = List.of(
                 "jbang", SCRIPT.toString(),
                 input.toAbsolutePath().toString(),
                 upstreamOut.toAbsolutePath().toString(),
                 affectedOut.toAbsolutePath().toString(),
-                changedOut.toAbsolutePath().toString());
+                changedOut.toAbsolutePath().toString(),
+                imageProducersOut.toAbsolutePath().toString());
         ProcessBuilder pb = new ProcessBuilder(cmd)
                 .directory(REPO_ROOT.toFile())
                 .redirectErrorStream(true);

@@ -38,7 +38,7 @@ public class CiComputeBuildScopes {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 4) {
-            System.err.println("usage: jbang CiComputeBuildScopes.java <changed-files-in> <upstream-out> <affected-out> <changed-out>");
+            System.err.println("usage: jbang CiComputeBuildScopes.java <changed-files-in> <upstream-out> <affected-out> <changed-out> [image-producers-out]");
             System.err.println();
             System.err.println("env (each also readable as a system property of the same name):");
             System.err.println("  DEP_GRAPH_EXTRACTOR__JAR               path to dep-graph-extractor jar (default: build from script/ci/dep-graph-extractor)");
@@ -53,6 +53,7 @@ public class CiComputeBuildScopes {
         Path upstreamOut = Paths.get(args[1]);
         Path affectedOut = Paths.get(args[2]);
         Path changedOut = Paths.get(args[3]);
+        Path imageProducersOut = args.length >= 5 ? Paths.get(args[4]) : null;
 
         Path cwd = Paths.get("").toAbsolutePath();
         if (!Files.isRegularFile(cwd.resolve("pom.xml"))) {
@@ -152,9 +153,13 @@ public class CiComputeBuildScopes {
         List<Partition> partitions = null;
         if (partitionsDirEnv != null && !partitionsDirEnv.isBlank()) {
             Path partitionsDir = cwd.resolve(partitionsDirEnv);
-            Map<Path, String> dirToGaMap = gaToDir.entrySet().stream()
-                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
-            partitions = readPartitionFiles(partitionsDir, dirToGaMap, cwd);
+            Set<String> imageProducers = imageProducersOut == null
+                    ? Set.of()
+                    : readModuleFile(partitionsDir.resolve("image-producers.txt"), dirToGa, cwd, "image-producers");
+            if (imageProducersOut != null) {
+                writeLines(imageProducersOut, imageProducersIn(upstreamAll, imageProducers));
+            }
+            partitions = readPartitionFiles(partitionsDir, dirToGa, cwd);
             computePartitionClosures(partitions, graph);
             Partition defaultPartition = new Partition("default", Set.of());
             partitions.add(defaultPartition);
@@ -163,7 +168,12 @@ public class CiComputeBuildScopes {
             for (Partition p : partitions) {
                 writeLines(partitionedPath(affectedOut, p.name), p.assigned);
                 writeLines(partitionedPath(upstreamOut, p.name), p.upstream);
+                if (imageProducersOut != null) {
+                    writeLines(partitionedPath(imageProducersOut, p.name), imageProducersIn(p.upstream, imageProducers));
+                }
             }
+        } else if (imageProducersOut != null) {
+            writeLines(imageProducersOut, Set.of());
         }
 
         int total = gaToDir.size();
@@ -267,6 +277,12 @@ public class CiComputeBuildScopes {
         Files.write(out, sorted);
     }
 
+    private static Set<String> imageProducersIn(Set<String> modules, Set<String> imageProducers) {
+        Set<String> result = new LinkedHashSet<>(modules);
+        result.retainAll(imageProducers);
+        return result;
+    }
+
     static class Partition {
         final String name;
         final Set<String> entries;
@@ -289,21 +305,25 @@ public class CiComputeBuildScopes {
         List<Partition> result = new ArrayList<>();
         for (Path file : files) {
             String partName = file.getFileName().toString().replaceFirst("\\.txt$", "");
-            Set<String> entries = new LinkedHashSet<>();
-            for (String line : Files.readAllLines(file)) {
-                String trimmed = line.trim();
-                if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
-                Path modDir = cwd.resolve(trimmed).toAbsolutePath().normalize();
-                String ga = dirToGa.get(modDir);
-                if (ga == null) {
-                    System.err.println("ERROR: " + partName + ": '" + trimmed + "' does not resolve to a reactor module");
-                    System.exit(1);
-                }
-                entries.add(ga);
-            }
-            result.add(new Partition(partName, entries));
+            result.add(new Partition(partName, readModuleFile(file, dirToGa, cwd, partName)));
         }
         return result;
+    }
+
+    static Set<String> readModuleFile(Path file, Map<Path, String> dirToGa, Path cwd, String listName) throws IOException {
+        Set<String> modules = new LinkedHashSet<>();
+        for (String line : Files.readAllLines(file)) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
+            Path modDir = cwd.resolve(trimmed).toAbsolutePath().normalize();
+            String ga = dirToGa.get(modDir);
+            if (ga == null) {
+                System.err.println("ERROR: " + listName + ": '" + trimmed + "' does not resolve to a reactor module");
+                System.exit(1);
+            }
+            modules.add(ga);
+        }
+        return modules;
     }
 
     private static void computePartitionClosures(List<Partition> partitions, DepGraph graph) {
