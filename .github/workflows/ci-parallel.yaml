@@ -21,7 +21,7 @@ name: 'CI :: Build - Parallel'
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed, labeled]
+    types: [opened, synchronize, reopened, closed]
     branches: [main]
     paths-ignore:
       - 'LICENSE'
