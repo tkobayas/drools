@@ -84,8 +84,11 @@ jobs:
             ${{ runner.temp }}/maven-pl-affected-default.txt
             ${{ runner.temp }}/maven-pl-upstream-partition*.txt
             ${{ runner.temp }}/maven-pl-upstream-default.txt
+            ${{ runner.temp }}/maven-pl-changed-partition*.txt
+            ${{ runner.temp }}/maven-pl-changed-default.txt
             ${{ runner.temp }}/maven-pl-image-producers-partition*.txt
             ${{ runner.temp }}/maven-pl-image-producers-default.txt
+            ${{ runner.temp }}/dep-graph.tsv
 
   # Each partition runs as an independent job via the dynamic matrix.
   # GHA computes the cross-product of partition × java × os.
@@ -152,13 +155,15 @@ jobs:
         if: always()
         shell: bash
         env:
+          CI_PARALLEL_BUILD: 'true'
           MERMAID_EXPANDED: ${{ matrix.java == 21 }}
           MATRIX_OS: ${{ matrix.os }}
           MATRIX_JAVA: ${{ matrix.java }}
         run: |
-          MAVEN_PL_AFFECTED=$(paste -sd, "$MAVEN_PL_AFFECTED_FILE" 2>/dev/null || true) \
-          MAVEN_PL_UPSTREAM=$(paste -sd, "$MAVEN_PL_UPSTREAM_FILE" 2>/dev/null || true) \
-          MAVEN_PL_CHANGED=$(paste -sd, "$MAVEN_PL_CHANGED_FILE" 2>/dev/null || true) \
+          MAVEN_PL_AFFECTED=$(paste -sd, "${{ runner.temp }}/maven-pl-affected-${{ matrix.partition }}.txt" 2>/dev/null || true) \
+          MAVEN_PL_UPSTREAM=$(paste -sd, "${{ runner.temp }}/maven-pl-upstream-${{ matrix.partition }}.txt" 2>/dev/null || true) \
+          MAVEN_PL_CHANGED=$(paste -sd, "${{ runner.temp }}/maven-pl-changed-${{ matrix.partition }}.txt" 2>/dev/null || true) \
+          MAVEN_PL_IMAGE_PRODUCERS=$(paste -sd, "${{ runner.temp }}/maven-pl-image-producers-${{ matrix.partition }}.txt" 2>/dev/null || true) \
           jbang script/ci/CiSummary.java
 
       - name: Upload Build logs

@@ -157,7 +157,7 @@ public class CiComputeBuildScopes {
                     ? Set.of()
                     : readModuleFile(partitionsDir.resolve("image-producers.txt"), dirToGa, cwd, "image-producers");
             if (imageProducersOut != null) {
-                writeLines(imageProducersOut, imageProducersIn(upstreamAll, imageProducers));
+                writeLines(imageProducersOut, intersection(upstreamAll, imageProducers));
             }
             partitions = readPartitionFiles(partitionsDir, dirToGa, cwd);
             computePartitionClosures(partitions, graph);
@@ -168,8 +168,9 @@ public class CiComputeBuildScopes {
             for (Partition p : partitions) {
                 writeLines(partitionedPath(affectedOut, p.name), p.assigned);
                 writeLines(partitionedPath(upstreamOut, p.name), p.upstream);
+                writeLines(partitionedPath(changedOut, p.name), intersection(changed, p.assigned));
                 if (imageProducersOut != null) {
-                    writeLines(partitionedPath(imageProducersOut, p.name), imageProducersIn(p.upstream, imageProducers));
+                    writeLines(partitionedPath(imageProducersOut, p.name), intersection(p.upstream, imageProducers));
                 }
             }
         } else if (imageProducersOut != null) {
@@ -277,9 +278,9 @@ public class CiComputeBuildScopes {
         Files.write(out, sorted);
     }
 
-    private static Set<String> imageProducersIn(Set<String> modules, Set<String> imageProducers) {
-        Set<String> result = new LinkedHashSet<>(modules);
-        result.retainAll(imageProducers);
+    private static Set<String> intersection(Set<String> left, Set<String> right) {
+        Set<String> result = new LinkedHashSet<>(left);
+        result.retainAll(right);
         return result;
     }
 

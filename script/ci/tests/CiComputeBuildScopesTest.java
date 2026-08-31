@@ -33,7 +33,9 @@ import org.junit.platform.console.ConsoleLauncher;
 import java.io.*;
 import java.nio.file.*;
 import java.io.UncheckedIOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.*;
 
 /**
@@ -50,6 +52,9 @@ import java.util.stream.*;
  *   expected-image-producers-partitionN.txt — per-partition image-producer goldens
  *   expected-affected-default.txt    — implicit default partition affected golden
  *   expected-upstream-default.txt    — implicit default partition upstream golden
+ *
+ * Generated per-partition changed files are checked against the intersection
+ * of the global changed list and each partition's affected list.
  *
  * The test runs CiComputeBuildScopes with the scenario's changed-files.txt
  * (and CI_PARTITIONS_DIR pointing to the real partition files) and diffs the
@@ -148,6 +153,14 @@ public class CiComputeBuildScopesTest {
             if (Files.isRegularFile(scenario.resolve("expected-image-producers-" + part + ".txt"))) {
                 assertMatchesGolden(scenario, "image-producers-" + part, partImageProducers);
             }
+            Path partChanged = tmp.resolve("changed-" + part + ".txt");
+            Assertions.assertTrue(Files.isRegularFile(partChanged),
+                    "partition changed list missing: " + partChanged);
+            Set<String> expectedPartChanged = new HashSet<>(Files.readAllLines(actualChanged));
+            expectedPartChanged.retainAll(Files.readAllLines(partAffected));
+            assertThat(Files.readAllLines(partChanged))
+                    .as("changed-" + part)
+                    .containsExactlyInAnyOrderElementsOf(expectedPartChanged);
         }
     }
 
