@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  */
 public class Addons {
 
-    // test2
+    // test3
 
     /**
      * Default empty addons instance
