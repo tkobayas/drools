@@ -22,7 +22,7 @@ name: 'CI :: Build'
 on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
-    branches: [main]
+    branches: [main, parallel-ci-tkobayas-partition]
     paths-ignore:
       - 'LICENSE'
       - '**/.gitignore'
