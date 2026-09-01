@@ -126,6 +126,12 @@
       <releases><enabled>false</enabled></releases>
       <snapshots><enabled>false</enabled></snapshots>
     </repository>
+    <repository>
+      <id>jboss-public</id>
+      <url>https://repository.jboss.org/nexus/content/groups/public/</url>
+      <releases><enabled>false</enabled></releases>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
   </repositories>
   <pluginRepositories>
     <pluginRepository>
