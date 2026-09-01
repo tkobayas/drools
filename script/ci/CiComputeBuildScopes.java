@@ -160,10 +160,12 @@ public class CiComputeBuildScopes {
                 writeLines(imageProducersOut, intersection(upstreamAll, imageProducers));
             }
             partitions = readPartitionFiles(partitionsDir, dirToGa, cwd);
+            assertEntriesDontOverlap(partitions);
             computePartitionClosures(partitions, graph);
             Partition defaultPartition = new Partition("default", Set.of());
             partitions.add(defaultPartition);
             assignToPartitionsExclusive(affected, partitions, defaultPartition);
+            assertAllAffectedAssigned(affected, partitions);
             computePerPartitionUpstream(partitions, graph);
             for (Partition p : partitions) {
                 writeLines(partitionedPath(affectedOut, p.name), p.assigned);
@@ -330,6 +332,37 @@ public class CiComputeBuildScopes {
     private static void computePartitionClosures(List<Partition> partitions, DepGraph graph) {
         for (Partition p : partitions) {
             p.closure = DepGraph.traverse(p.entries, graph.upstreamOf);
+        }
+    }
+
+    private static void assertEntriesDontOverlap(List<Partition> partitions) {
+        Set<String> seen = new HashSet<>();
+        List<String> errors = new ArrayList<>();
+        for (Partition p : partitions) {
+            for (String ga : p.entries) {
+                if (!seen.add(ga)) {
+                    errors.add(ga + " (in " + p.name + ")");
+                }
+            }
+        }
+        if (!errors.isEmpty()) {
+            System.err.println("ERROR: overlapping entries across partition files:");
+            errors.forEach(e -> System.err.println("  " + e));
+            System.exit(1);
+        }
+    }
+
+    private static void assertAllAffectedAssigned(Set<String> affected, List<Partition> partitions) {
+        Set<String> assigned = new HashSet<>();
+        for (Partition p : partitions) {
+            assigned.addAll(p.assigned);
+        }
+        Set<String> missing = new HashSet<>(affected);
+        missing.removeAll(assigned);
+        if (!missing.isEmpty()) {
+            System.err.println("ERROR: " + missing.size() + " affected module(s) not assigned to any partition:");
+            missing.stream().sorted().forEach(ga -> System.err.println("  " + ga));
+            System.exit(1);
         }
     }
 
