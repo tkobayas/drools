@@ -18,6 +18,7 @@
  */
 package org.drools.ruleunits.dsl;
 
+import org.drools.core.SessionConfiguration;
 import org.drools.core.common.ReteEvaluator;
 import org.drools.core.impl.InternalRuleBase;
 import org.drools.core.reteoo.ReteDumper;
@@ -31,6 +32,7 @@ import org.drools.ruleunits.api.conf.RuleConfig;
 import org.drools.ruleunits.impl.EntryPointDataProcessor;
 import org.drools.ruleunits.impl.ReteEvaluatorBasedRuleUnitInstance;
 import org.drools.ruleunits.impl.RuleUnitProviderImpl;
+import org.drools.ruleunits.impl.conf.RuleConfigImpl;
 import org.drools.ruleunits.impl.factory.AbstractRuleUnit;
 import org.drools.ruleunits.impl.sessions.RuleUnitExecutorImpl;
 import org.kie.api.runtime.rule.EntryPoint;
@@ -74,7 +76,9 @@ public class RuleUnitProviderForDSL extends RuleUnitProviderImpl {
 
         @Override
         public RuleUnitInstance<T> internalCreateInstance(T data, RuleConfig ruleConfig) {
-            ReteEvaluator reteEvaluator = new RuleUnitExecutorImpl(ruleBase);
+            SessionConfiguration sessionConfiguration = ruleBase.getSessionConfiguration().as(SessionConfiguration.KEY);
+            ((RuleConfigImpl) ruleConfig).mergeSessionConfiguration(sessionConfiguration);
+            ReteEvaluator reteEvaluator = new RuleUnitExecutorImpl(ruleBase, sessionConfiguration);
             return new DSLRuleUnitInstance<>(this, data, reteEvaluator, unitGlobalsResolver, ruleConfig);
         }
     }
