@@ -18,9 +18,11 @@
  */
 package org.drools.ruleunits.dsl;
 
+import org.drools.core.ClockType;
 import org.drools.core.SessionConfiguration;
 import org.drools.core.common.ReteEvaluator;
 import org.drools.core.impl.InternalRuleBase;
+import org.drools.core.impl.RuleBaseFactory;
 import org.drools.core.reteoo.ReteDumper;
 import org.drools.model.Model;
 import org.drools.modelcompiler.KieBaseBuilder;
@@ -32,7 +34,6 @@ import org.drools.ruleunits.api.conf.RuleConfig;
 import org.drools.ruleunits.impl.EntryPointDataProcessor;
 import org.drools.ruleunits.impl.ReteEvaluatorBasedRuleUnitInstance;
 import org.drools.ruleunits.impl.RuleUnitProviderImpl;
-import org.drools.ruleunits.impl.conf.RuleConfigImpl;
 import org.drools.ruleunits.impl.factory.AbstractRuleUnit;
 import org.drools.ruleunits.impl.sessions.RuleUnitExecutorImpl;
 import org.kie.api.runtime.rule.EntryPoint;
@@ -76,9 +77,15 @@ public class RuleUnitProviderForDSL extends RuleUnitProviderImpl {
 
         @Override
         public RuleUnitInstance<T> internalCreateInstance(T data, RuleConfig ruleConfig) {
-            SessionConfiguration sessionConfiguration = ruleBase.getSessionConfiguration().as(SessionConfiguration.KEY);
-            ((RuleConfigImpl) ruleConfig).mergeSessionConfiguration(sessionConfiguration);
-            ReteEvaluator reteEvaluator = new RuleUnitExecutorImpl(ruleBase, sessionConfiguration);
+            ReteEvaluator reteEvaluator;
+            org.drools.ruleunits.api.conf.ClockType clockType = ruleConfig.getClockType();
+            if (clockType != null) {
+                SessionConfiguration sessionConfiguration = RuleBaseFactory.newKnowledgeSessionConfiguration().as(SessionConfiguration.KEY);
+                sessionConfiguration.setClockType(clockType == org.drools.ruleunits.api.conf.ClockType.PSEUDO ? ClockType.PSEUDO_CLOCK : ClockType.REALTIME_CLOCK);
+                reteEvaluator = new RuleUnitExecutorImpl(ruleBase, sessionConfiguration);
+            } else {
+                reteEvaluator = new RuleUnitExecutorImpl(ruleBase);
+            }
             return new DSLRuleUnitInstance<>(this, data, reteEvaluator, unitGlobalsResolver, ruleConfig);
         }
     }
