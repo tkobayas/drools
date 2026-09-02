@@ -1,0 +1,3 @@
+org.kie.kogito:data-index-service-inmemory
+org.kie.kogito:data-index-service-mongodb
+org.kie.kogito:data-index-service-postgresql

@@ -1,0 +1,2 @@
+org.kie.kogito:data-index-service-postgresql
+org.kie.kogito:jitexecutor-runner
