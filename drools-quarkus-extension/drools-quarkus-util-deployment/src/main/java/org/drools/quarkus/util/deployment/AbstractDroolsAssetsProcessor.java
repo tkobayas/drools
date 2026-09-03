@@ -74,7 +74,6 @@ import static org.drools.quarkus.util.deployment.DroolsQuarkusResourceUtils.toCl
 
 public class AbstractDroolsAssetsProcessor {
 
-    // Parallel CI partitioning test06. retrigger
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractDroolsAssetsProcessor.class);
 
 

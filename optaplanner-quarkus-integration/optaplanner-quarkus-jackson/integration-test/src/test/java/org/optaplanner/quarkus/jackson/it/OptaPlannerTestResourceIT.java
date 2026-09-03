@@ -27,5 +27,4 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 @QuarkusIntegrationTest
 public class OptaPlannerTestResourceIT extends OptaPlannerTestResourceTest {
 
-    // Parallel CI partitioning test06.
 }
