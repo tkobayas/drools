@@ -28,4 +28,5 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 @JobServiceTestResource(kafkaEnabled = true, dataIndexEnabled = true)
 class IndependentJobsIT extends BaseIndependentJobsIT {
 
+    // Parallel CI sparse partitioning test06.
 }
