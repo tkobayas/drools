@@ -78,7 +78,6 @@
     <dependency>
       <groupId>org.kie.kogito</groupId>
       <artifactId>jobs-service-postgresql</artifactId>
-      <version>${project.version}</version>
       <type>pom</type>
       <scope>provided</scope>
       <exclusions>
