@@ -25,8 +25,11 @@ import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.RecognizerSharedState;
+import org.antlr.runtime.Token;
 import org.drools.drl.ast.descr.BaseDescr;
 import org.drools.drl.ast.descr.ConstraintConnectiveDescr;
+import org.drools.drl.parser.lang.DRL6Expressions;
+import org.drools.drl.parser.lang.DRL6Lexer;
 import org.drools.drl.parser.lang.DRLExpressions;
 import org.drools.drl.parser.lang.DRLLexer;
 import org.drools.drl.parser.lang.ParserHelper;
@@ -68,6 +71,27 @@ public class Drl6ExprParser implements DrlExprParser {
         return constraint;
     }
     
+    public static boolean hasTopLevelTernaryExpression(String expression) {
+        try {
+            DRL6Lexer lexer = new DRL6Lexer(new ANTLRStringStream(expression));
+            CommonTokenStream input = new CommonTokenStream(lexer);
+            RecognizerSharedState state = new RecognizerSharedState();
+            ParserHelper h = new ParserHelper(input, state, LanguageLevelOption.DRL6);
+            DRL6Expressions parser = new DRL6Expressions(input, state, h);
+            parser.setBuildDescr(false);
+            parser.conditionalOrExpression();
+            if (input.LA(1) == DRL6Lexer.QUESTION) {
+                parser.ternaryExpression();
+                return !parser.hasErrors()
+                        && lexer.getErrors().isEmpty()
+                        && input.LA(1) == Token.EOF;
+            }
+            return false;
+        } catch (RecognitionException e) {
+            return false;
+        }
+    }
+
     public String getLeftMostExpr() {
         return helper != null ? helper.getLeftMostExpr() : null;
     }
