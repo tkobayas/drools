@@ -28,7 +28,6 @@ import org.antlr.runtime.RecognizerSharedState;
 import org.antlr.runtime.Token;
 import org.drools.drl.ast.descr.BaseDescr;
 import org.drools.drl.ast.descr.ConstraintConnectiveDescr;
-import org.drools.drl.parser.lang.DRL6Expressions;
 import org.drools.drl.parser.lang.DRL6Lexer;
 import org.drools.drl.parser.lang.DRLExpressions;
 import org.drools.drl.parser.lang.DRLLexer;
@@ -71,25 +70,22 @@ public class Drl6ExprParser implements DrlExprParser {
         return constraint;
     }
     
-    public static boolean hasTopLevelTernaryExpression(String expression) {
-        try {
-            DRL6Lexer lexer = new DRL6Lexer(new ANTLRStringStream(expression));
-            CommonTokenStream input = new CommonTokenStream(lexer);
-            RecognizerSharedState state = new RecognizerSharedState();
-            ParserHelper h = new ParserHelper(input, state, LanguageLevelOption.DRL6);
-            DRL6Expressions parser = new DRL6Expressions(input, state, h);
-            parser.setBuildDescr(false);
-            parser.conditionalOrExpression();
-            if (input.LA(1) == DRL6Lexer.QUESTION) {
-                parser.ternaryExpression();
-                return !parser.hasErrors()
-                        && lexer.getErrors().isEmpty()
-                        && input.LA(1) == Token.EOF;
+    /**
+     * Returns whether to preserve the eval wrapper around the supplied contents.
+     * Question-mark tokens at any nesting depth may indicate a ternary whose branches
+     * would be lost during constraint parsing. Strings and comments are ignored.
+     * Lexer errors also preserve the wrapper, leaving validation to compilation.
+     * This is a conservative check, not validation of ternary syntax.
+     */
+    public static boolean shouldPreserveEval(String expression) {
+        DRL6Lexer lexer = new DRL6Lexer(new ANTLRStringStream(expression));
+        for (Token token = lexer.nextToken(); token.getType() != Token.EOF; token = lexer.nextToken()) {
+            // QUESTION_DIV also covers a ternary immediately followed by a comment: x?/*...*/y:z.
+            if (token.getType() == DRL6Lexer.QUESTION || token.getType() == DRL6Lexer.QUESTION_DIV) {
+                return true;
             }
-            return false;
-        } catch (RecognitionException e) {
-            return false;
         }
+        return !lexer.getErrors().isEmpty();
     }
 
     public String getLeftMostExpr() {

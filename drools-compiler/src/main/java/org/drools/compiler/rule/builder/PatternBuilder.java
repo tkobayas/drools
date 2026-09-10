@@ -1807,7 +1807,7 @@ public class PatternBuilder implements RuleConditionBuilder<PatternDescr> {
                                                         final String expression) {
         DrlExprParser parser = DrlExprParserFactory.getDrlExprParser(context.getConfiguration().getOption(LanguageLevelOption.KEY));
         String toParse = normalizeEval(expression);
-        if (!toParse.equals(expression) && Drl6ExprParser.hasTopLevelTernaryExpression(toParse)) {
+        if (!toParse.equals(expression) && Drl6ExprParser.shouldPreserveEval(toParse)) {
             toParse = expression;
         }
         ConstraintConnectiveDescr result = parser.parse(toParse);
