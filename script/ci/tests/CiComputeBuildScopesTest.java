@@ -21,11 +21,13 @@
 //JAVA 21
 //DEPS org.junit.platform:junit-platform-console-standalone:1.11.4
 //DEPS org.assertj:assertj-core:3.26.3
+//SOURCES ../CiComputeBuildScopes.java
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.params.provider.*;
 import org.junit.platform.console.ConsoleLauncher;
@@ -118,6 +120,34 @@ public class CiComputeBuildScopesTest {
                     .toList()
                     .stream();
         }
+    }
+
+    @Test
+    void partitionUpstreamKeepsLocalAffectedDependencyNeededByForeignAffectedModule() {
+        String consumer = "test:partition1-consumer";
+        String foreignDependency = "test:partition2-dependency";
+        String localDependency = "test:partition1-dependency";
+
+        DepGraph graph = new DepGraph();
+        graph.upstreamOf.put(consumer, Set.of(foreignDependency));
+        graph.upstreamOf.put(foreignDependency, Set.of(localDependency));
+        graph.upstreamOf.put(localDependency, Set.of());
+
+        CiComputeBuildScopes.Partition partition1 =
+                new CiComputeBuildScopes.Partition("partition1", Set.of());
+        partition1.assigned.addAll(Set.of(consumer, localDependency));
+        CiComputeBuildScopes.Partition partition2 =
+                new CiComputeBuildScopes.Partition("partition2", Set.of());
+        partition2.assigned.add(foreignDependency);
+
+        CiComputeBuildScopes.computePerPartitionUpstream(
+                List.of(partition1, partition2), graph);
+
+        // partition1 must install the foreign module before testing its consumer. The
+        // foreign module, in turn, cannot be built unless the local affected dependency
+        // is included in this upstream pass as well.
+        assertThat(partition1.upstream)
+                .containsExactlyInAnyOrder(consumer, foreignDependency, localDependency);
     }
 
     @ParameterizedTest(name = "{0}")
