@@ -18,6 +18,7 @@
  */
 package org.drools.mvel;
 
+// Parallel CI partitioning test marker.
 import org.drools.drl.parser.impl.Operator;
 import org.drools.core.common.SingleBetaConstraints;
 import org.drools.base.reteoo.NodeTypeEnums;
