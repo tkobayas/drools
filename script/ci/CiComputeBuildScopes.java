@@ -393,7 +393,7 @@ public class CiComputeBuildScopes {
     // Without them, an upstream module from another partition could fail to resolve
     // dependencies on this partition's affected modules (e.g., shared module U depends
     // on affected module V — if V is removed from upstream, building U fails).
-    private static void computePerPartitionUpstream(List<Partition> partitions, DepGraph graph) {
+    static void computePerPartitionUpstream(List<Partition> partitions, DepGraph graph) {
         for (Partition p : partitions) {
             if (p.assigned.isEmpty()) continue;
             p.upstream = DepGraph.traverse(p.assigned, graph.upstreamOf);
