@@ -45,7 +45,7 @@ jobs:
     if: >-
       github.event.action != 'closed'
       && github.event_name == 'pull_request'
-      && contains(github.event.pull_request.labels.*.name, 'parallel ci')
+      && !contains(github.event.pull_request.labels.*.name, 'serial ci')
     runs-on: ubuntu-latest
     outputs:
       partitions: ${{ steps.partitions.outputs.partitions }}
