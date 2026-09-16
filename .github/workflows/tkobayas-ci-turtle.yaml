@@ -1,0 +1,88 @@
+#
+# Personal CI workflow for tkobayas/drools fork.
+# Triggered by PRs targeting the main-ci branch only.
+# Runs a full Maven build (all modules, all tests) — equivalent to
+# the "CI :: BUILD :: Full" step in ci.yaml.
+#
+# This file is intentionally kept on the main-ci branch only and
+# must NOT be included in PRs sent to upstream (apache/incubator-kie-drools).
+#
+
+name: 'tkobayas CI :: Full Build with TurtleTest'
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main-ci   # only PRs targeting this branch trigger the workflow
+
+concurrency:
+  group: tkobayas-ci-turtle-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  full-build:
+    name: '${{ matrix.os }}, Java ${{ matrix.java }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        java: [17, 21]
+
+    steps:
+      - name: 'SETUP :: Checkout'
+        uses: actions/checkout@v4
+
+      - name: 'SETUP :: Java ${{ matrix.java }}'
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+          cache: maven
+
+      - name: 'SETUP :: Block apache.snapshots Maven repository'
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.m2"
+          cat > "$HOME/.m2/settings.xml" <<'EOF'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
+            <mirrors>
+              <mirror>
+                <id>block-apache-snapshots</id>
+                <mirrorOf>apache.snapshots,apache-snapshot-repository</mirrorOf>
+                <url>https://repository.apache.org/snapshots/</url>
+                <blocked>true</blocked>
+              </mirror>
+            </mirrors>
+          </settings>
+          EOF
+
+      - name: 'BUILD :: Full (all modules, all tests)'
+        shell: bash
+        run: |
+          mvn --batch-mode --no-transfer-progress -fae \
+              -Dsurefire.redirectTestOutputToFile=true \
+              -Dfull -Dreproducible -Dfile.encoding=UTF-8 \
+              -DrunTurtleTests=true \
+              install
+
+      - name: 'REPORT :: Surefire test results'
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: '**/surefire-reports/TEST-*.xml'
+          check_name: 'Surefire (${{ matrix.os }}, Java ${{ matrix.java }})'
+          fail_on_failure: true
+
+      - name: 'REPORT :: Upload build logs'
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.os }}-java${{ matrix.java }}
+          path: '**/build.log'
+          if-no-files-found: ignore
