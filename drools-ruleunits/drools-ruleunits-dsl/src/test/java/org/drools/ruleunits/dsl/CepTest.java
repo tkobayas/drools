@@ -347,13 +347,30 @@ public class CepTest {
     }
 
     @Test
-    public void coincidesWithDev() {
+    public void coincidesDoesNotMatchWhenDifferent() {
+        StreamCoincidesUnit unit = new StreamCoincidesUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamCoincidesUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            unit.getStockTicks().append(new StockTick("DROO", 5000));
+            clock.advanceTime(100, TimeUnit.MILLISECONDS);
+            unit.getStockTicks().append(new StockTick("ACME", 5000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
+        }
+    }
+
+    @Test
+    public void coincidesWithDevMatchesWithinDeviation() {
         StreamCoincidesDevUnit unit = new StreamCoincidesDevUnit();
         RuleConfig config = RuleUnitProvider.get().newRuleConfig();
         config.setClockType(ClockType.PSEUDO);
         try (RuleUnitInstance<StreamCoincidesDevUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
             SessionPseudoClock clock = instance.getClock();
             unit.getStockTicks().append(new StockTick("DROO", 5000));
+            // start deviation 500ms <= 1s dev, duration diff 0 <= 1s dev
             clock.advanceTime(500, TimeUnit.MILLISECONDS);
             unit.getStockTicks().append(new StockTick("ACME", 5000));
             instance.fire();
@@ -364,19 +381,54 @@ public class CepTest {
     }
 
     @Test
-    public void coincidesWithStartEndDev() {
+    public void coincidesWithDevDoesNotMatchWhenExceedingDeviation() {
+        StreamCoincidesDevUnit unit = new StreamCoincidesDevUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamCoincidesDevUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            unit.getStockTicks().append(new StockTick("DROO", 5000));
+            // start deviation 1500ms > 1s dev
+            clock.advanceTime(1500, TimeUnit.MILLISECONDS);
+            unit.getStockTicks().append(new StockTick("ACME", 5000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
+        }
+    }
+
+    @Test
+    public void coincidesWithStartEndDevMatchesWithinDeviation() {
         StreamCoincidesStartEndDevUnit unit = new StreamCoincidesStartEndDevUnit();
         RuleConfig config = RuleUnitProvider.get().newRuleConfig();
         config.setClockType(ClockType.PSEUDO);
         try (RuleUnitInstance<StreamCoincidesStartEndDevUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
             SessionPseudoClock clock = instance.getClock();
             unit.getStockTicks().append(new StockTick("DROO", 5000));
+            // start dev 500ms <= 1s startDev, end dev 1500ms <= 2s endDev (DROO ends at 5s, ACME ends at 0.5s+6s = 6.5s)
             clock.advanceTime(500, TimeUnit.MILLISECONDS);
             unit.getStockTicks().append(new StockTick("ACME", 6000));
             instance.fire();
 
             assertThat(unit.getResults()).hasSize(1);
             assertThat(unit.getResults().get(0).getCompany()).isEqualTo("ACME");
+        }
+    }
+
+    @Test
+    public void coincidesWithStartEndDevDoesNotMatchWhenExceedingDeviation() {
+        StreamCoincidesStartEndDevUnit unit = new StreamCoincidesStartEndDevUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamCoincidesStartEndDevUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            unit.getStockTicks().append(new StockTick("DROO", 5000));
+            // start dev 500ms <= 1s, but end dev = |(0.5s + 8s) - 5s| = 3.5s > 2s endDev
+            clock.advanceTime(500, TimeUnit.MILLISECONDS);
+            unit.getStockTicks().append(new StockTick("ACME", 8000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
         }
     }
 
@@ -391,13 +443,31 @@ public class CepTest {
             SessionPseudoClock clock = instance.getClock();
             // A starts at 0, duration 10s (ends at 10s)
             unit.getStockTicks().append(new StockTick("DROO", 10000));
-            // B starts at 2s, duration 4s (ends at 6s) -> during A
+            // B starts at 2s, duration 4s (ends at 6s) -> start dist = 2s in [1s, 10s], end dist = 4s in [1s, 10s]
             clock.advanceTime(2, TimeUnit.SECONDS);
             unit.getStockTicks().append(new StockTick("ACME", 4000));
             instance.fire();
 
             assertThat(unit.getResults()).hasSize(1);
             assertThat(unit.getResults().get(0).getCompany()).isEqualTo("ACME");
+        }
+    }
+
+    @Test
+    public void duringDoesNotMatchWhenNotContained() {
+        StreamDuringUnit unit = new StreamDuringUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamDuringUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            // A starts at 0, duration 5s (ends at 5s)
+            unit.getStockTicks().append(new StockTick("DROO", 5000));
+            // B starts at 2s, duration 5s (ends at 7s > end(A)) -> not during A
+            clock.advanceTime(2, TimeUnit.SECONDS);
+            unit.getStockTicks().append(new StockTick("ACME", 5000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
         }
     }
 
@@ -410,13 +480,31 @@ public class CepTest {
             SessionPseudoClock clock = instance.getClock();
             // B (ACME) starts at 0 with 10s duration (ends at 10s)
             unit.getStockTicks().append(new StockTick("ACME", 10000));
-            // A (DROO) starts at 2s with 4s duration (ends at 6s) -> start dist = 2s, end dist = 4s, so B includes A
+            // A (DROO) starts at 2s with 4s duration (ends at 6s) -> start dist = 2s in [1s, 10s], end dist = 4s in [1s, 10s]
             clock.advanceTime(2, TimeUnit.SECONDS);
             unit.getStockTicks().append(new StockTick("DROO", 4000));
             instance.fire();
 
             assertThat(unit.getResults()).hasSize(1);
             assertThat(unit.getResults().get(0).getCompany()).isEqualTo("ACME");
+        }
+    }
+
+    @Test
+    public void includesDoesNotMatchWhenNotIncluding() {
+        StreamIncludesUnit unit = new StreamIncludesUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamIncludesUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            // B (ACME) starts at 0 with 5s duration (ends at 5s)
+            unit.getStockTicks().append(new StockTick("ACME", 5000));
+            // A (DROO) starts at 2s with 5s duration (ends at 7s > end(B)) -> B does not include A
+            clock.advanceTime(2, TimeUnit.SECONDS);
+            unit.getStockTicks().append(new StockTick("DROO", 5000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
         }
     }
 
@@ -433,13 +521,31 @@ public class CepTest {
             unit.getStockTicks().append(new StockTick("ACME", 5000));
             // A (DROO) starts at 3s, duration 5s (ends at 8s)
             // B starts before A (0 < 3), B ends after A starts but before A ends (3 < 5 < 8)
-            // overlap dist = end(B) - start(A) = 5 - 3 = 2s
+            // overlap dist = end(B) - start(A) = 5 - 3 = 2s in [1s, 5s]
             clock.advanceTime(3, TimeUnit.SECONDS);
             unit.getStockTicks().append(new StockTick("DROO", 5000));
             instance.fire();
 
             assertThat(unit.getResults()).hasSize(1);
             assertThat(unit.getResults().get(0).getCompany()).isEqualTo("ACME");
+        }
+    }
+
+    @Test
+    public void overlapsDoesNotMatchWhenNoOverlap() {
+        StreamOverlapsUnit unit = new StreamOverlapsUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamOverlapsUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            // B (ACME) starts at 0s, duration 2s (ends at 2s)
+            unit.getStockTicks().append(new StockTick("ACME", 2000));
+            // A (DROO) starts at 3s, duration 5s (ends at 8s) -> end(B) < start(A), no overlap
+            clock.advanceTime(3, TimeUnit.SECONDS);
+            unit.getStockTicks().append(new StockTick("DROO", 5000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
         }
     }
 
@@ -454,7 +560,7 @@ public class CepTest {
             unit.getStockTicks().append(new StockTick("DROO", 5000));
             // B (ACME) starts at 3s, duration 5s (ends at 8s)
             // B starts after A starts but before A ends (0 < 3 < 5), B ends after A (8 > 5)
-            // overlap dist = end(A) - start(B) = 5 - 3 = 2s
+            // overlap dist = end(A) - start(B) = 5 - 3 = 2s in [1s, 5s]
             clock.advanceTime(3, TimeUnit.SECONDS);
             unit.getStockTicks().append(new StockTick("ACME", 5000));
             instance.fire();
@@ -464,10 +570,28 @@ public class CepTest {
         }
     }
 
+    @Test
+    public void overlappedbyDoesNotMatchWhenNoOverlap() {
+        StreamOverlappedbyUnit unit = new StreamOverlappedbyUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamOverlappedbyUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            // A (DROO) starts at 0s, duration 2s (ends at 2s)
+            unit.getStockTicks().append(new StockTick("DROO", 2000));
+            // B (ACME) starts at 3s, duration 5s (ends at 8s) -> start(B) > end(A), no overlap
+            clock.advanceTime(3, TimeUnit.SECONDS);
+            unit.getStockTicks().append(new StockTick("ACME", 5000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
+        }
+    }
+
     // --- Temporal constraint: meets / metby ---
 
     @Test
-    public void meetsMatches() {
+    public void meetsMatchesWithinDeviation() {
         StreamMeetsUnit unit = new StreamMeetsUnit();
         RuleConfig config = RuleUnitProvider.get().newRuleConfig();
         config.setClockType(ClockType.PSEUDO);
@@ -475,8 +599,8 @@ public class CepTest {
             SessionPseudoClock clock = instance.getClock();
             // B (ACME) starts at 0, duration 3s (ends at 3s)
             unit.getStockTicks().append(new StockTick("ACME", 3000));
-            // A (DROO) starts at 3s -> end(B) == start(A)
-            clock.advanceTime(3, TimeUnit.SECONDS);
+            // A (DROO) starts at 3.5s -> |start(A) - end(B)| = 500ms <= 1s dev
+            clock.advanceTime(3500, TimeUnit.MILLISECONDS);
             unit.getStockTicks().append(new StockTick("DROO", 3000));
             instance.fire();
 
@@ -486,7 +610,25 @@ public class CepTest {
     }
 
     @Test
-    public void metbyMatches() {
+    public void meetsDoesNotMatchWhenExceedingDeviation() {
+        StreamMeetsUnit unit = new StreamMeetsUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamMeetsUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            // B (ACME) starts at 0, duration 3s (ends at 3s)
+            unit.getStockTicks().append(new StockTick("ACME", 3000));
+            // A (DROO) starts at 5s -> |start(A) - end(B)| = 2s > 1s dev
+            clock.advanceTime(5, TimeUnit.SECONDS);
+            unit.getStockTicks().append(new StockTick("DROO", 3000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
+        }
+    }
+
+    @Test
+    public void metbyMatchesWithinDeviation() {
         StreamMetbyUnit unit = new StreamMetbyUnit();
         RuleConfig config = RuleUnitProvider.get().newRuleConfig();
         config.setClockType(ClockType.PSEUDO);
@@ -494,27 +636,47 @@ public class CepTest {
             SessionPseudoClock clock = instance.getClock();
             // A (DROO) starts at 0, duration 3s (ends at 3s)
             unit.getStockTicks().append(new StockTick("DROO", 3000));
-            // B (ACME) starts at 3s -> start(B) == end(A)
-            clock.advanceTime(3, TimeUnit.SECONDS);
+            // B (ACME) starts at 3.5s -> |start(B) - end(A)| = 500ms <= 1s dev
+            clock.advanceTime(3500, TimeUnit.MILLISECONDS);
             unit.getStockTicks().append(new StockTick("ACME", 3000));
             instance.fire();
 
             assertThat(unit.getResults()).hasSize(1);
             assertThat(unit.getResults().get(0).getCompany()).isEqualTo("ACME");
+        }
+    }
+
+    @Test
+    public void metbyDoesNotMatchWhenExceedingDeviation() {
+        StreamMetbyUnit unit = new StreamMetbyUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamMetbyUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            // A (DROO) starts at 0, duration 3s (ends at 3s)
+            unit.getStockTicks().append(new StockTick("DROO", 3000));
+            // B (ACME) starts at 5s -> |start(B) - end(A)| = 2s > 1s dev
+            clock.advanceTime(5, TimeUnit.SECONDS);
+            unit.getStockTicks().append(new StockTick("ACME", 3000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
         }
     }
 
     // --- Temporal constraint: starts / startedby ---
 
     @Test
-    public void startsMatches() {
+    public void startsMatchesWithinDeviation() {
         StreamStartsUnit unit = new StreamStartsUnit();
         RuleConfig config = RuleUnitProvider.get().newRuleConfig();
         config.setClockType(ClockType.PSEUDO);
         try (RuleUnitInstance<StreamStartsUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
             // A (DROO) starts at 0, duration 5s (ends at 5s)
             unit.getStockTicks().append(new StockTick("DROO", 5000));
-            // B (ACME) starts at 0, duration 3s (ends at 3s) -> same start, end(B) < end(A)
+            // B (ACME) starts at 500ms (diff 500ms <= 1s dev), duration 3s (ends at 3.5s < 5s)
+            clock.advanceTime(500, TimeUnit.MILLISECONDS);
             unit.getStockTicks().append(new StockTick("ACME", 3000));
             instance.fire();
 
@@ -524,14 +686,34 @@ public class CepTest {
     }
 
     @Test
-    public void startedbyMatches() {
+    public void startsDoesNotMatchWhenExceedingDeviation() {
+        StreamStartsUnit unit = new StreamStartsUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamStartsUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            // A (DROO) starts at 0, duration 5s (ends at 5s)
+            unit.getStockTicks().append(new StockTick("DROO", 5000));
+            // B (ACME) starts at 1.5s (diff 1.5s > 1s dev)
+            clock.advanceTime(1500, TimeUnit.MILLISECONDS);
+            unit.getStockTicks().append(new StockTick("ACME", 2000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
+        }
+    }
+
+    @Test
+    public void startedbyMatchesWithinDeviation() {
         StreamStartedbyUnit unit = new StreamStartedbyUnit();
         RuleConfig config = RuleUnitProvider.get().newRuleConfig();
         config.setClockType(ClockType.PSEUDO);
         try (RuleUnitInstance<StreamStartedbyUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
             // A (DROO) starts at 0, duration 3s (ends at 3s)
             unit.getStockTicks().append(new StockTick("DROO", 3000));
-            // B (ACME) starts at 0, duration 5s (ends at 5s) -> same start, end(B) > end(A)
+            // B (ACME) starts at 500ms (diff 500ms <= 1s dev), duration 5s (ends at 5.5s > 3s)
+            clock.advanceTime(500, TimeUnit.MILLISECONDS);
             unit.getStockTicks().append(new StockTick("ACME", 5000));
             instance.fire();
 
@@ -540,10 +722,28 @@ public class CepTest {
         }
     }
 
+    @Test
+    public void startedbyDoesNotMatchWhenExceedingDeviation() {
+        StreamStartedbyUnit unit = new StreamStartedbyUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamStartedbyUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            // A (DROO) starts at 0, duration 3s (ends at 3s)
+            unit.getStockTicks().append(new StockTick("DROO", 3000));
+            // B (ACME) starts at 1.5s (diff 1.5s > 1s dev)
+            clock.advanceTime(1500, TimeUnit.MILLISECONDS);
+            unit.getStockTicks().append(new StockTick("ACME", 5000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
+        }
+    }
+
     // --- Temporal constraint: finishes / finishedby ---
 
     @Test
-    public void finishesMatches() {
+    public void finishesMatchesWithinDeviation() {
         StreamFinishesUnit unit = new StreamFinishesUnit();
         RuleConfig config = RuleUnitProvider.get().newRuleConfig();
         config.setClockType(ClockType.PSEUDO);
@@ -551,9 +751,9 @@ public class CepTest {
             SessionPseudoClock clock = instance.getClock();
             // A (DROO) starts at 0, duration 5s (ends at 5s)
             unit.getStockTicks().append(new StockTick("DROO", 5000));
-            // B (ACME) starts at 2s, duration 3s (ends at 5s) -> start(B) > start(A), end(B) == end(A)
+            // B (ACME) starts at 2s, duration 3.5s (ends at 5.5s, |end(B) - end(A)| = 500ms <= 1s dev)
             clock.advanceTime(2, TimeUnit.SECONDS);
-            unit.getStockTicks().append(new StockTick("ACME", 3000));
+            unit.getStockTicks().append(new StockTick("ACME", 3500));
             instance.fire();
 
             assertThat(unit.getResults()).hasSize(1);
@@ -562,7 +762,25 @@ public class CepTest {
     }
 
     @Test
-    public void finishedbyMatches() {
+    public void finishesDoesNotMatchWhenExceedingDeviation() {
+        StreamFinishesUnit unit = new StreamFinishesUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamFinishesUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            // A (DROO) starts at 0, duration 5s (ends at 5s)
+            unit.getStockTicks().append(new StockTick("DROO", 5000));
+            // B (ACME) starts at 2s, duration 5s (ends at 7s, |end(B) - end(A)| = 2s > 1s dev)
+            clock.advanceTime(2, TimeUnit.SECONDS);
+            unit.getStockTicks().append(new StockTick("ACME", 5000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
+        }
+    }
+
+    @Test
+    public void finishedbyMatchesWithinDeviation() {
         StreamFinishedbyUnit unit = new StreamFinishedbyUnit();
         RuleConfig config = RuleUnitProvider.get().newRuleConfig();
         config.setClockType(ClockType.PSEUDO);
@@ -570,13 +788,31 @@ public class CepTest {
             SessionPseudoClock clock = instance.getClock();
             // B (ACME) starts at 0, duration 5s (ends at 5s)
             unit.getStockTicks().append(new StockTick("ACME", 5000));
-            // A (DROO) starts at 2s, duration 3s (ends at 5s) -> start(B) < start(A), end(B) == end(A)
+            // A (DROO) starts at 2s, duration 3.5s (ends at 5.5s, |end(B) - end(A)| = 500ms <= 1s dev)
             clock.advanceTime(2, TimeUnit.SECONDS);
-            unit.getStockTicks().append(new StockTick("DROO", 3000));
+            unit.getStockTicks().append(new StockTick("DROO", 3500));
             instance.fire();
 
             assertThat(unit.getResults()).hasSize(1);
             assertThat(unit.getResults().get(0).getCompany()).isEqualTo("ACME");
+        }
+    }
+
+    @Test
+    public void finishedbyDoesNotMatchWhenExceedingDeviation() {
+        StreamFinishedbyUnit unit = new StreamFinishedbyUnit();
+        RuleConfig config = RuleUnitProvider.get().newRuleConfig();
+        config.setClockType(ClockType.PSEUDO);
+        try (RuleUnitInstance<StreamFinishedbyUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(unit, config)) {
+            SessionPseudoClock clock = instance.getClock();
+            // B (ACME) starts at 0, duration 5s (ends at 5s)
+            unit.getStockTicks().append(new StockTick("ACME", 5000));
+            // A (DROO) starts at 2s, duration 5s (ends at 7s, |end(B) - end(A)| = 2s > 1s dev)
+            clock.advanceTime(2, TimeUnit.SECONDS);
+            unit.getStockTicks().append(new StockTick("DROO", 5000));
+            instance.fire();
+
+            assertThat(unit.getResults()).isEmpty();
         }
     }
 
