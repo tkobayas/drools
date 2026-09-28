@@ -1,0 +1,3 @@
+org.kie.kogito:data-index-service-postgresql
+org.kie.kogito:explainability-service-messaging
+org.kie.kogito:jitexecutor-runner

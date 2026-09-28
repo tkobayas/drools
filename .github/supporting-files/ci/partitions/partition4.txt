@@ -1,0 +1,15 @@
+# kogito-jobs-service
+kogito-apps-quarkus/integration-tests-jobs
+kogito-apps-quarkus/integration-tests-jobs-service-quarkus/integration-tests-jobs-service-quarkus-embedded
+kogito-apps-quarkus/integration-tests-jobs-service-quarkus/integration-tests-jobs-service-quarkus-knative-eventing
+kogito-apps-quarkus/integration-tests-jobs-service-quarkus/integration-tests-jobs-service-quarkus-management
+kogito-apps-quarkus/integration-tests-jobs-service-quarkus/integration-tests-jobs-service-quarkus-messaging
+kogito-apps-quarkus/jobs-service-quarkus/jobs-recipients/job-sink-recipient/deployment
+kogito-apps-quarkus/jobs-service-quarkus/jobs-service-infinispan
+kogito-apps-quarkus/jobs-service-quarkus/jobs-service-mongodb
+kogito-apps-quarkus/jobs-service-quarkus/jobs-service-postgresql
+kogito-apps-quarkus/jobs-service-quarkus/jobs-service-storage-jpa
+kogito-apps-quarkus/jobs-service-quarkus/kogito-addons-jobs-service/kogito-addons-quarkus-jobs
+kogito-apps-quarkus/jobs-service-quarkus/kogito-addons-jobs-service/kogito-addons-quarkus-jobs-service-embedded/deployment
+kogito-apps-springboot/integration-tests-jobs-service-springboot
+kogito-apps-springboot/jobs-springboot/kogito-addons-springboot-embedded-jobs

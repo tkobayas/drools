@@ -1,0 +1,16 @@
+# kogito-data-index
+kogito-apps-quarkus/data-audit-quarkus/kogito-addons-data-audit-jpa-quarkus/data-audit-quarkus-jpa-service
+kogito-apps-quarkus/data-index-quarkus/kogito-addons-quarkus-data-index/kogito-addons-quarkus-data-index-inmemory/integration-tests-process
+kogito-apps-quarkus/data-index-quarkus/kogito-addons-quarkus-data-index/kogito-addons-quarkus-data-index-jpa/deployment
+kogito-apps-quarkus/data-index-quarkus/kogito-addons-quarkus-data-index/kogito-addons-quarkus-data-index-jpa/integration-tests-process
+kogito-apps-quarkus/data-index-quarkus/kogito-addons-quarkus-data-index/kogito-addons-quarkus-data-index-mongodb/integration-tests-process
+kogito-apps-quarkus/data-index-quarkus/kogito-addons-quarkus-data-index/kogito-addons-quarkus-data-index-postgresql/integration-tests-process
+kogito-apps-quarkus/data-index-quarkus/kogito-addons-quarkus-data-index-persistence/kogito-addons-quarkus-data-index-persistence-jpa/integration-tests-process
+kogito-apps-quarkus/data-index-quarkus/kogito-addons-quarkus-data-index-persistence/kogito-addons-quarkus-data-index-persistence-mongodb/integration-tests-process
+kogito-apps-quarkus/data-index-quarkus/kogito-addons-quarkus-data-index-persistence/kogito-addons-quarkus-data-index-persistence-postgresql/integration-tests-process
+kogito-apps-quarkus/data-index-storage-quarkus/data-index-storage-postgresql-reporting
+kogito-apps-quarkus/integration-tests-data-index-service-quarkus-parent/integration-tests-data-index-service-quarkus
+kogito-apps-springboot/data-audit-springboot/kogito-addons-springboot-data-audit
+kogito-apps-springboot/data-index-springboot/kogito-addons-springboot-data-index/kogito-addons-springboot-data-index-jpa-parent/integration-tests-process
+kogito-apps-springboot/data-index-springboot/kogito-addons-springboot-data-index-persistence/kogito-addons-springboot-data-index-persistence-jpa-parent/integration-tests-process
+kogito-apps-springboot/integration-tests-data-index-service-springboot
