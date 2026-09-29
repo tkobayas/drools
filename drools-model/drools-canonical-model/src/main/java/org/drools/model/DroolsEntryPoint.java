@@ -23,10 +23,11 @@ public interface DroolsEntryPoint {
     void insert(Object object);
 
     /**
-     * @deprecated Use {@link #insert(Object)} and declare the fact type
-     *             with {@code @propertyChangeSupport} instead.
+     * @deprecated since 5.0.1, the per-instance dynamic flag is a legacy Drools 4 API.
+     *             Use {@link #insert(Object)} and declare the fact type with
+     *             {@code @propertyChangeSupport} instead.
      */
-    @Deprecated
+    @Deprecated(since = "5.0.1", forRemoval = false)
     void insert(Object object, boolean dynamic);
 
     void update(Object object, String... modifiedProperties);

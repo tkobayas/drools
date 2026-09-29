@@ -50,10 +50,11 @@ public interface WorkingMemoryEntryPoint extends EntryPoint {
      *            <code>PropertyChangeListeners</code> to the object.
      *
      * @return The new fact-handle associated with the object.
-     * @deprecated Use {@link #insert(Object)} and declare the fact type
-     *             with {@code @propertyChangeSupport} instead.
+     * @deprecated since 5.0.1, the per-instance dynamic flag is a legacy Drools 4 API.
+     *             Use {@link #insert(Object)} and declare the fact type with
+     *             {@code @propertyChangeSupport} instead.
      */
-    @Deprecated
+    @Deprecated(since = "5.0.1", forRemoval = false)
     FactHandle insert(Object object,
                       boolean dynamic);
 
