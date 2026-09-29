@@ -54,8 +54,7 @@ public class DroolsImpl implements Drools, org.kie.api.runtime.rule.RuleContext 
 
     @Override
     public void insert(Object object) {
-        TerminalNode terminalNode = ((InternalMatch)getMatch()).getTerminalNode();
-        ((InternalWorkingMemoryEntryPoint)reteEvaluator.getDefaultEntryPoint()).insert(object, false, getRule(), terminalNode);
+        insert( object, false );
     }
 
     @Deprecated

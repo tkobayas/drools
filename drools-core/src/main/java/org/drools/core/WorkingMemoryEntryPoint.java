@@ -50,7 +50,7 @@ public interface WorkingMemoryEntryPoint extends EntryPoint {
      *            <code>PropertyChangeListeners</code> to the object.
      *
      * @return The new fact-handle associated with the object.
-     * @deprecated Use {@link org.kie.api.runtime.KieSession#insert(Object)} and declare the fact type
+     * @deprecated Use {@link #insert(Object)} and declare the fact type
      *             with {@code @propertyChangeSupport} instead.
      */
     @Deprecated
