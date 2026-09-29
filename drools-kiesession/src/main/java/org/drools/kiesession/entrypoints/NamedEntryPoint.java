@@ -169,6 +169,7 @@ public class NamedEntryPoint implements InternalWorkingMemoryEntryPoint, Propert
                 null);
     }
 
+    @Deprecated
     public FactHandle insert(final Object object,
                              final boolean dynamic) {
         return insert(object, dynamic, null, null);

@@ -56,7 +56,10 @@ public interface ConsequenceContext extends RuleContext {
      *            the object to be asserted
      * @param dynamic -
      *            specifies the object implements onPropertyChangeListener
+     * @deprecated Use {@link #insert(Object)} and declare the fact type
+     *             with {@code @propertyChangeSupport} instead.
      */
+    @Deprecated
     FactHandle insert(Object object, boolean dynamic);
 
     FactHandle insertLogical(Object object) ;

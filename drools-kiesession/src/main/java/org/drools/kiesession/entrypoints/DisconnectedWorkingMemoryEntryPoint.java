@@ -90,6 +90,7 @@ public class DisconnectedWorkingMemoryEntryPoint implements WorkingMemoryEntryPo
         throw new UnsupportedOperationException( "This method is not supported for disconnected objects" );
     }
 
+    @Deprecated
     @Override
     public FactHandle insert( Object object, boolean dynamic ) {
         throw new UnsupportedOperationException( "This method is not supported for disconnected objects" );

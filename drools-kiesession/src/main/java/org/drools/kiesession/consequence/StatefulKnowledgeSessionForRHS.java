@@ -318,6 +318,7 @@ public class StatefulKnowledgeSessionForRHS
         return delegate.getKieBaseEventListeners();
     }
 
+    @Deprecated
     public FactHandle insert(Object object, boolean dynamic) {
         return delegate.insert(object, dynamic);
     }

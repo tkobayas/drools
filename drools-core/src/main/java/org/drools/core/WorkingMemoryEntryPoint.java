@@ -42,15 +42,18 @@ public interface WorkingMemoryEntryPoint extends EntryPoint {
      * Insert a fact registering JavaBean <code>PropertyChangeListeners</code>
      * on the Object to automatically trigger <code>update</code> calls
      * if <code>dynamic</code> is <code>true</code>.
-     * 
+     *
      * @param object
      *            The fact object.
      * @param dynamic
      *            true if Drools should add JavaBean
      *            <code>PropertyChangeListeners</code> to the object.
-     * 
+     *
      * @return The new fact-handle associated with the object.
+     * @deprecated Use {@link org.kie.api.runtime.KieSession#insert(Object)} and declare the fact type
+     *             with {@code @propertyChangeSupport} instead.
      */
+    @Deprecated
     FactHandle insert(Object object,
                       boolean dynamic);
 

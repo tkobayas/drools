@@ -121,9 +121,11 @@ public class DefaultKnowledgeHelper implements KnowledgeHelper, Externalizable {
     }
 
     public FactHandle insert(final Object object) {
-        return insert( object, false );
+        return ((InternalWorkingMemoryEntryPoint) this.reteEvaluator.getDefaultEntryPoint())
+                .insert(object, false, this.internalMatch.getRule(), SuperCacheFixer.asTerminalNode(this.internalMatch.getTuple()));
     }
 
+    @Deprecated
     public FactHandle insert(final Object object, final boolean dynamic) {
         return ((InternalWorkingMemoryEntryPoint) this.reteEvaluator.getDefaultEntryPoint())
                 .insert(object, dynamic, this.internalMatch.getRule(), SuperCacheFixer.asTerminalNode(this.internalMatch.getTuple()));

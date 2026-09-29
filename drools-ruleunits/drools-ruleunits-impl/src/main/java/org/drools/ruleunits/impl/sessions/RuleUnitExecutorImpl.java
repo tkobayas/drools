@@ -652,6 +652,7 @@ public class RuleUnitExecutorImpl implements ReteEvaluator {
             return knowledgeHelper.insert(object);
         }
 
+        @Deprecated
         @Override
         public FactHandle insert(Object object, boolean dynamic) {
             return knowledgeHelper.insert(object, dynamic);

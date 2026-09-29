@@ -22,6 +22,11 @@ public interface DroolsEntryPoint {
 
     void insert(Object object);
 
+    /**
+     * @deprecated Use {@link #insert(Object)} and declare the fact type
+     *             with {@code @propertyChangeSupport} instead.
+     */
+    @Deprecated
     void insert(Object object, boolean dynamic);
 
     void update(Object object, String... modifiedProperties);
