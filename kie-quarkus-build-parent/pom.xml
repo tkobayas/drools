@@ -39,7 +39,7 @@
   </description>
 
   <properties>
-    <version.io.quarkus>3.33.3.2</version.io.quarkus>
+    <version.io.quarkus>3.33.4</version.io.quarkus>
     <version.io.quarkus.camel>3.33.2</version.io.quarkus.camel>
     <!-- Quarkus-platform-aligned pin. kie-parent keeps the Spring Boot / framework-neutral value;
          this tree needs the platform one (smallrye-reactive-messaging 4.33.0 requires Mutiny 3). -->
