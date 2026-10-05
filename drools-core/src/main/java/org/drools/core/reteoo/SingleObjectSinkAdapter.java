@@ -134,14 +134,19 @@ public class SingleObjectSinkAdapter implements ObjectSinkPropagator {
 
         if (betaNode.getType() == NodeTypeEnums.NotNode) {
             bm.linkNode(betaNode, reteEvaluator);
+            // Stage left tuples that have no match records (contextObject == null) as INSERT.
+            // insertLeft in PhreakSubnetworkNotExistsNode only creates a child when contextObject
+            // is null, so this is a no-op for tuples that were already correctly handled by the
+            // normal deleteRight path (which leaves an empty-but-non-null TupleList as contextObject).
+            // This rescues cross-package broken-path cases where deleteRight never ran for a rule.
             SegmentMemory smem = bm.getSegmentMemory();
             if (smem != null) {
                 TupleMemory ltm = bm.getLeftTupleMemory();
                 if (ltm != null && ltm.size() > 0) {
                     FastIterator<TupleImpl> it = ltm.fullFastIterator();
                     for (TupleImpl lt = BetaNode.getFirstTuple(ltm, it); lt != null; lt = it.next(lt)) {
-                        if (lt.getStagedType() == Tuple.NONE) {
-                            smem.getStagedLeftTuples().addUpdate(lt);
+                        if (lt.getStagedType() == Tuple.NONE && lt.getContextObject() == null) {
+                            smem.getStagedLeftTuples().addInsert(lt);
                         }
                     }
                 }
