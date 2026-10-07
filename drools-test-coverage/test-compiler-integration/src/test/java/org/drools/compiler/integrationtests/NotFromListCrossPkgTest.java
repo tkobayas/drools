@@ -49,6 +49,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Two packages are required so that {@code KnowledgeBaseImpl.addPackages()} adds them
  * one at a time, which is the only path that invokes
  * {@code EagerPhreakBuilder.Add.processSplit} and triggers the segment split.</p>
+ *
+ * @see NotFromListSamePkgTest for same-package baseline
  */
 public class NotFromListCrossPkgTest {
 
@@ -155,13 +157,13 @@ public class NotFromListCrossPkgTest {
     }
 
     /**
-     * Core regression: insert a blocking Container, then retract it.
-     * After the retract both rules must fire again.
-     * Without the fix, "sibling" permanently stops firing after the retract.
+     * Insert a blocking Container, then retract it.
+     * subject's NOT transitions FALSE→TRUE so it must re-fire.
+     * sibling's NOT stays TRUE→TRUE so it must not re-fire.
      */
     @ParameterizedTest(name = "KieBase type={0}")
     @MethodSource("parameters")
-    public void siblingFiresAfterBlockingContainerIsRetracted_crossPackage(KieBaseTestConfiguration cfg) {
+    public void subjectRefiresAfterBlockingContainerIsRetracted_crossPackage(KieBaseTestConfiguration cfg) {
         KieBase kbase = KieBaseUtil.getKieBaseFromKieModuleFromDrl("not-from-retract", cfg, DRL_B, DRL_C);
         KieSession ks = kbase.newKieSession();
         try {
@@ -174,13 +176,13 @@ public class NotFromListCrossPkgTest {
             assertThat(results).as("only sibling fires while blocked item is present")
                                .containsExactly("sibling");
 
-            // Retract: both rules must now fire (no more blocking Container)
+            // Retract: subject FALSE→TRUE must fire; sibling TRUE→TRUE must not re-fire
             results.clear();
             ks.delete(fh);
             ks.fireAllRules();
             assertThat(results)
-                    .as("after retracting the blocking Container both rules must fire")
-                    .containsExactlyInAnyOrder("subject", "sibling");
+                    .as("subject FALSE->TRUE must fire; sibling TRUE->TRUE must not re-fire")
+                    .containsExactly("subject");
         } finally {
             ks.dispose();
         }
@@ -191,15 +193,14 @@ public class NotFromListCrossPkgTest {
     // -----------------------------------------------------------------------
 
     /**
-     * Regression: three packages sharing the same subnetwork.  Adding DRL_D causes
-     * {@code processSplit} to be called a second time, creating a second lazy
-     * {@code segmentMemories[]} slot.  After a blocking retract all three rules must
-     * fire — without the fix the second slot stays null and the third rule silently
-     * stops firing.
+     * Three packages sharing the same subnetwork.  Adding DRL_D causes
+     * {@code processSplit} to be called a second time.
+     * After retract, only subject (FALSE→TRUE) must fire;
+     * sibling and cousin (TRUE→TRUE) must not re-fire.
      */
     @ParameterizedTest(name = "KieBase type={0}")
     @MethodSource("parameters")
-    public void threePackages_allFireAfterBlockingRetract(KieBaseTestConfiguration cfg) {
+    public void threePackages_onlyBlockedRuleRefiresAfterRetract(KieBaseTestConfiguration cfg) {
         KieBase kbase = KieBaseUtil.getKieBaseFromKieModuleFromDrl("not-from-three", cfg, DRL_B, DRL_C, DRL_D);
         KieSession ks = kbase.newKieSession();
         try {
@@ -212,13 +213,13 @@ public class NotFromListCrossPkgTest {
             assertThat(results).as("blocked item suppresses subject; sibling and cousin must fire")
                                .containsExactlyInAnyOrder("sibling", "cousin");
 
-            // Retract: all three rules must fire
+            // Retract: subject FALSE→TRUE must fire; sibling/cousin TRUE→TRUE must not re-fire
             results.clear();
             ks.delete(fh);
             ks.fireAllRules();
             assertThat(results)
-                    .as("after retracting the blocking Container all three rules must fire")
-                    .containsExactlyInAnyOrder("subject", "sibling", "cousin");
+                    .as("subject FALSE->TRUE must fire; sibling/cousin TRUE->TRUE must not re-fire")
+                    .containsExactly("subject");
         } finally {
             ks.dispose();
         }
@@ -238,11 +239,123 @@ public class NotFromListCrossPkgTest {
             ks.fireAllRules();
             assertThat(results).containsExactlyInAnyOrder("subject", "sibling");
 
-            // Retract and re-fire: both rules fire again
+            // Retract: neither should re-fire (TRUE→TRUE for both)
             results.clear();
             ks.delete(fh);
             ks.fireAllRules();
+            assertThat(results).isEmpty();
+        } finally {
+            ks.dispose();
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // TRUE→TRUE: non-matching Container multiple cycles — no re-fire expected
+    // -----------------------------------------------------------------------
+
+    @ParameterizedTest(name = "KieBase type={0}")
+    @MethodSource("parameters")
+    public void crossPkg_trueTrue_multipleCycles(KieBaseTestConfiguration cfg) {
+        KieBase kbase = KieBaseUtil.getKieBaseFromKieModuleFromDrl("xpkg-tt", cfg, DRL_B, DRL_C);
+        KieSession ks = kbase.newKieSession();
+        try {
+            List<String> results = new ArrayList<>();
+            ks.setGlobal("results", results);
+
+            FactHandle fh1 = ks.insert(new Container("blocked"));
+            ks.fireAllRules();
+            assertThat(results).containsExactly("sibling");
+
+            results.clear();
+            ks.delete(fh1);
+            ks.fireAllRules();
+            assertThat(results).containsExactly("subject");
+
+            results.clear();
+            FactHandle fh2 = ks.insert(new Container("blocked"));
+            int fired = ks.fireAllRules();
+            assertThat(fired).as("TRUE→TRUE: no re-fire on cycle2 insert").isZero();
+
+            results.clear();
+            ks.delete(fh2);
+            ks.fireAllRules();
+            assertThat(results).containsExactly("subject");
+        } finally {
+            ks.dispose();
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // TRUE→FALSE→TRUE: matching Container blocks then unblocks — must re-fire
+    // -----------------------------------------------------------------------
+
+    @ParameterizedTest(name = "KieBase type={0}")
+    @MethodSource("parameters")
+    public void crossPkg_trueFalseTrue_siblingBlocked(KieBaseTestConfiguration cfg) {
+        KieBase kbase = KieBaseUtil.getKieBaseFromKieModuleFromDrl("xpkg-tft-sib", cfg, DRL_B, DRL_C);
+        KieSession ks = kbase.newKieSession();
+        try {
+            List<String> results = new ArrayList<>();
+            ks.setGlobal("results", results);
+
+            ks.fireAllRules();
             assertThat(results).containsExactlyInAnyOrder("subject", "sibling");
+
+            results.clear();
+            FactHandle fh1 = ks.insert(new Container("special"));
+            ks.fireAllRules();
+            assertThat(results).as("sibling blocked by 'special'").isEmpty();
+
+            results.clear();
+            ks.delete(fh1);
+            ks.fireAllRules();
+            assertThat(results).as("sibling FALSE→TRUE must re-fire").containsExactly("sibling");
+
+            results.clear();
+            FactHandle fh2 = ks.insert(new Container("special"));
+            ks.fireAllRules();
+            assertThat(results).isEmpty();
+
+            results.clear();
+            ks.delete(fh2);
+            ks.fireAllRules();
+            assertThat(results).as("sibling FALSE→TRUE cycle2").containsExactly("sibling");
+        } finally {
+            ks.dispose();
+        }
+    }
+
+    @ParameterizedTest(name = "KieBase type={0}")
+    @MethodSource("parameters")
+    public void crossPkg_trueFalseTrue_subjectBlocked(KieBaseTestConfiguration cfg) {
+        KieBase kbase = KieBaseUtil.getKieBaseFromKieModuleFromDrl("xpkg-tft-sub", cfg, DRL_B, DRL_C);
+        KieSession ks = kbase.newKieSession();
+        try {
+            List<String> results = new ArrayList<>();
+            ks.setGlobal("results", results);
+
+            ks.fireAllRules();
+            assertThat(results).containsExactlyInAnyOrder("subject", "sibling");
+
+            results.clear();
+            FactHandle fh1 = ks.insert(new Container("blocked"));
+            ks.fireAllRules();
+            assertThat(results).as("subject blocked by 'blocked'").isEmpty();
+
+            results.clear();
+            ks.delete(fh1);
+            ks.fireAllRules();
+            assertThat(results).as("subject FALSE→TRUE must re-fire").containsExactly("subject");
+
+            results.clear();
+            FactHandle fh2 = ks.insert(new Container("blocked"));
+            ks.fireAllRules();
+            assertThat(results).isEmpty();
+
+            results.clear();
+            ks.delete(fh2);
+            ks.fireAllRules();
+            assertThat(results).as("subject FALSE→TRUE cycle2").containsExactly("subject");
         } finally {
             ks.dispose();
         }

@@ -167,10 +167,10 @@ public class SubnetworkSegmentSplitIntegrationTest {
             assertThat(results).as("Initial fire with Container(tagA)").containsExactlyInAnyOrder("ruleB", "ruleC");
             results.clear();
 
-            // Retract container -> all not-rules re-activate and fire because the blocking/shared container is gone
+            // Retract container -> ruleA FALSE->TRUE must fire; ruleB/ruleC TRUE->TRUE must not re-fire
             ks.delete(fhC);
             ks.fireAllRules();
-            assertThat(results).as("After retraction of Container(tagA)").containsExactlyInAnyOrder("ruleA", "ruleB", "ruleC");
+            assertThat(results).as("After retraction of Container(tagA)").containsExactly("ruleA");
         } finally {
             ks.dispose();
         }
