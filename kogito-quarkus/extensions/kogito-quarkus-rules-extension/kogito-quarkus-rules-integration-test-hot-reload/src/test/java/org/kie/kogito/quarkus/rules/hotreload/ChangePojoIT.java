@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ChangePojoIT {
 
+    // Parallel CI sparse partitioning test06.
     static {
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     }
