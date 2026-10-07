@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.is;
 
 public class SimpleHotReloadIT {
 
+    // Parallel CI partitioning test marker.
     static {
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     }
