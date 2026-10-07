@@ -18,6 +18,7 @@
  */
 package org.kie.kogito.it.jobs;
 
+// Parallel CI partitioning test marker.
 import org.junit.jupiter.api.BeforeEach;
 import org.kie.kogito.KogitoApplication;
 import org.kie.kogito.test.resources.JobServiceSpringBootTestResource;

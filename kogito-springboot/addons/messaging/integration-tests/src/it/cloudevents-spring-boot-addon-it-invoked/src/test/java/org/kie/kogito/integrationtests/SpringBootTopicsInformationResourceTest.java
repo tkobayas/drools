@@ -18,6 +18,7 @@
  */
 package org.kie.kogito.integrationtests;
 
+// Parallel CI partitioning test marker.
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
