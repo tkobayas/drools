@@ -39,11 +39,9 @@ import org.drools.modelcompiler.constraints.LambdaFieldReader;
 import org.drools.modelcompiler.constraints.LambdaReadAccessor;
 import org.drools.util.ClassUtils;
 import org.drools.util.TypeResolver;
-import org.kie.api.definition.type.Duration;
 import org.kie.api.definition.type.Expires;
 import org.kie.api.definition.type.Position;
 import org.kie.api.definition.type.Role;
-import org.kie.api.definition.type.Timestamp;
 import org.kie.internal.builder.conf.PropertySpecificOption;
 
 import static org.drools.base.rule.TypeDeclaration.createTypeDeclarationForBean;
@@ -63,7 +61,7 @@ public class TypeDeclarationUtil {
                 new AccessibleClassDefinition( typeClass, typeResolver ) :
                 new DynamicClassDefinition( typeClass ) );
 
-        wireClassAnnotations( typeClass, typeDeclaration );
+        wireTimeAccessors( typeDeclaration );
         wireMetaTypeAnnotations( metaType, typeDeclaration );
         wireFields(typeClass, typeDeclaration);
 
@@ -157,15 +155,13 @@ public class TypeDeclarationUtil {
         }
     }
 
-    private static void wireClassAnnotations( Class<?> typeClass, TypeDeclaration typeDeclaration ) {
-        Duration duration = typeClass.getAnnotation( Duration.class );
-        if (duration != null) {
-            wireDurationAccessor( duration.value(), typeDeclaration );
+    // the attribute names were already set from the class annotations by createTypeDeclarationForBean()
+    private static void wireTimeAccessors( TypeDeclaration typeDeclaration ) {
+        if (typeDeclaration.getDurationAttribute() != null) {
+            wireDurationAccessor( typeDeclaration.getDurationAttribute(), typeDeclaration );
         }
-
-        Timestamp timestamp = typeClass.getAnnotation( Timestamp.class );
-        if (timestamp != null) {
-            wireTimestampAccessor( timestamp.value(), typeDeclaration );
+        if (typeDeclaration.getTimestampAttribute() != null) {
+            wireTimestampAccessor( typeDeclaration.getTimestampAttribute(), typeDeclaration );
         }
     }
 
@@ -179,16 +175,7 @@ public class TypeDeclarationUtil {
 
     public static TypeDeclaration createTypeDeclaration(Class<?> cls, PropertySpecificOption propertySpecificOption) {
         TypeDeclaration typeDeclaration = createTypeDeclarationForBean( cls, propertySpecificOption );
-
-        Duration duration = cls.getAnnotation( Duration.class );
-        if (duration != null) {
-            wireDurationAccessor( duration.value(), typeDeclaration );
-        }
-        Timestamp timestamp = cls.getAnnotation( Timestamp.class );
-        if (timestamp != null) {
-            wireTimestampAccessor( timestamp.value(), typeDeclaration );
-        }
-
+        wireTimeAccessors( typeDeclaration );
         return typeDeclaration;
     }
 
