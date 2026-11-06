@@ -78,7 +78,7 @@ public class AbstractDroolsAssetsProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractDroolsAssetsProcessor.class);
 
-
+    // test
 
     private static final String CONFIG_PREFIX = "drools.kbase.";
 
