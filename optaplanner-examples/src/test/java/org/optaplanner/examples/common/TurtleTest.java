@@ -31,14 +31,14 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
 /**
- * Turtle tests are not run by default. They are only run if {@code -DrunTurtleTests=true} because it takes days.
+ * Turtle tests are not run by default. They are only run if {@code -DrunOptaPlannerTurtleTests=true} because it takes days.
  */
 @Target({ ElementType.TYPE, ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 @Test
 @Execution(ExecutionMode.CONCURRENT)
-@EnabledIfSystemProperty(named = TestSystemProperties.RUN_TURTLE_TESTS, matches = "true")
+@EnabledIfSystemProperty(named = TestSystemProperties.RUN_OPTA_PLANNER_TURTLE_TESTS, matches = "true")
 public @interface TurtleTest {
 
 }
